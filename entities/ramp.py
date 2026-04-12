@@ -5,14 +5,13 @@ class Ramp:
 
     def __init__(self, LeftAngle, RightAngle, DoubleRamp, RampColor):  # Constructor
         self.LeftAngle = LeftAngle
-        self.RightAngle = -RightAngle  #right slope angle is negative (below x-axis), but we need it possitive for calculations
+        self.RightAngle = RightAngle  #right slope angle is negative (below x-axis), but we need it possitive for calculations
         self.DoubleRamp = DoubleRamp
         self.RampColor = RampColor
 
         #constants
         self.RAMP_HEIGHT = 4
         self.RADIUS = 1
-
 
         self.Xleft = self.RAMP_HEIGHT/tan(radians(self.RightAngle))    #opposite to axises - dont know why
         self.Xright = self.RAMP_HEIGHT/tan(radians(self.LeftAngle))    #opposite to axises - dont know why 
@@ -22,15 +21,12 @@ class Ramp:
         else:
             self.triangleshape = [ [self.Xright,0], [0,self.RAMP_HEIGHT], [0,0], [self.Xright,0]]
 
-        outer_circle = shapes.circle(radius=self.RADIUS, pos=[0,self.RAMP_HEIGHT],thickness=0.2)
-
-
         linepath = [ vec(0,0,-4), vec(0,0,4) ]
-        ramp = extrusion(shape=self.triangleshape, path=linepath, color=self.RampColor,opacity=1)
+        ramp = extrusion(shape=self.triangleshape, path=linepath, color=self.RampColor,opacity=0.5)
 
 
  
-    def right_slope_position(self, Xslope, Yslope, height_above_slope):
+    def right_slope_position(self, Xslope, Yslope):
         """
         this method transforms right ramp coordinates to the real original x-y coordinates
         position 0,0 is the top of the slope
@@ -38,8 +34,7 @@ class Ramp:
         Args:
             Xslope                  (float): The x coordinates on ramp x axis.
             Yslope                  (float): The y coordinates on ramp y axis (currently unavilable)
-            height_above_slope      (float): height above the ramp: 0 < height_above_slope < ...
-
+            
         Returns:
             vector: (x,y,z) global axes coordinates
 
@@ -55,16 +50,20 @@ class Ramp:
 
         #Xslope_origin = 0 + self.RADIUS * sin(radians(self.RightAngle))
         #Yslope_origin = self.RAMP_HEIGHT + self.RADIUS * cos(radians(self.RightAngle))
-        Xslope_origin = 0 + height_above_slope * sin(radians(self.RightAngle))
-        Yslope_origin = self.RAMP_HEIGHT + height_above_slope * cos(radians(self.RightAngle))
+        X = ((Yslope * sin(radians(self.RightAngle)))+(Xslope * cos(radians(self.RightAngle))))
+        Y = (self.RAMP_HEIGHT - (Xslope * cos(radians(self.RightAngle)))) + (Yslope * sin(radians(self.RightAngle)))
+
+        print(self, "right_slope Xslope=",Xslope)
+        print(self, "right_slope Yslope=",Yslope)
+        print(self, "right_slope X=",X)
+        print(self, "right_slope Y=",Y)
+
+
+        return(vector(X,Y,0))
 
 
 
-        return(vector(Xslope_origin+(Xslope*cos(radians(self.RightAngle))),Yslope_origin-(Xslope*sin(radians(self.RightAngle))),0))
-
-
-
-    def left_slope_position(self, Xslope, Yslope, height_above_slope):
+    def left_slope_position(self, Xslope, Yslope):
         """
         this method transforms left ramp coordinates to the real original x-y coordinates
         position 0,0 is the top of the slope
@@ -72,7 +71,7 @@ class Ramp:
         Args:
             Xslope                  (float): The x coordinates on ramp x axis.
             Yslope                  (float): The y coordinates on ramp y axis (currently unavilable)
-            height_above_slope      (float): height above the ramp: 0 < height_above_slope < ...
+            
 
         Returns:
             vector: (x,y,z) global axes coordinates
@@ -87,10 +86,15 @@ class Ramp:
         # TODO: add support to calculate x,y in case Yslope is not zero
         
 
-        Xslope_origin = 0 - (height_above_slope * sin(radians(self.LeftAngle)))
-        Yslope_origin = self.RAMP_HEIGHT + height_above_slope * cos(radians(self.LeftAngle))
+        X = - ((Yslope * sin(radians(self.LeftAngle)))+(Xslope * cos(radians(self.LeftAngle))))
+        Y = (self.RAMP_HEIGHT - (Xslope * sin(radians(self.LeftAngle)))) + (Yslope * cos(radians(self.LeftAngle)))
 
-        return(vec(Xslope_origin-(Xslope*cos(radians(self.LeftAngle))),Yslope_origin-(Xslope*sin(radians(self.LeftAngle))),0))
+        print(self, "left_slope Xslope=",Xslope)
+        print(self, "left_slope Yslope=",Yslope)
+        print(self, "left_slope X=",X)
+        print(self, "left_slope Y=",Y)
+
+        return(vector(X,Y,0))
 
 
 
