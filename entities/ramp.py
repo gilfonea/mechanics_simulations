@@ -51,12 +51,7 @@ class Ramp:
         #Xslope_origin = 0 + self.RADIUS * sin(radians(self.RightAngle))
         #Yslope_origin = self.RAMP_HEIGHT + self.RADIUS * cos(radians(self.RightAngle))
         X = ((Yslope * sin(radians(self.RightAngle)))+(Xslope * cos(radians(self.RightAngle))))
-        Y = (self.RAMP_HEIGHT - (Xslope * cos(radians(self.RightAngle)))) + (Yslope * sin(radians(self.RightAngle)))
-
-        print(self, "right_slope Xslope=",Xslope)
-        print(self, "right_slope Yslope=",Yslope)
-        print(self, "right_slope X=",X)
-        print(self, "right_slope Y=",Y)
+        Y = (self.RAMP_HEIGHT - (Xslope * sin(radians(self.RightAngle)))) + (Yslope * cos(radians(self.RightAngle)))
 
 
         return(vector(X,Y,0))
@@ -88,11 +83,6 @@ class Ramp:
 
         X = - ((Yslope * sin(radians(self.LeftAngle)))+(Xslope * cos(radians(self.LeftAngle))))
         Y = (self.RAMP_HEIGHT - (Xslope * sin(radians(self.LeftAngle)))) + (Yslope * cos(radians(self.LeftAngle)))
-
-        print(self, "left_slope Xslope=",Xslope)
-        print(self, "left_slope Yslope=",Yslope)
-        print(self, "left_slope X=",X)
-        print(self, "left_slope Y=",Y)
 
         return(vector(X,Y,0))
 
