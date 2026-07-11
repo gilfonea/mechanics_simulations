@@ -39,21 +39,28 @@ class Two_bodies_on_incline():
                   DoubleRamp=True, 
                   RampColor=color.blue)
 
+        my_point = points(pos=myRamp.right_slope_position(0,0), radius=5, color=color.red)
+
+
         #create masses
-        m1 = Mass(tilt_angle=-60, 
-                  pos=myRamp.right_slope_position(5,0),                   
-                  opacity=1, 
-                  length=1, 
-                  height=1, 
-                  widht=2)
+        m1 = Mass(bottom_center = myRamp.right_slope_position(0,0),
+                             tilt_degrees=-60,
+                             tilt_axis=vector(1, 0, 0),
+                             length=1,
+                             height=1,
+                             width=2
+                             )
 
 
+        
+
+        '''
         m2 = Mass(tilt_angle=200, 
                   pos=myRamp.left_slope_position(5,0),                   
                   opacity=1, 
                   length=2,  #was 1
                   height=1, 
-                  widht=2)
+                  widht=2) '''
 
         #debug:
         #point1 = sphere(pos=myRamp.right_slope_position(0,0), radius=0.1, color=color.red, make_trail=True, retain=100)

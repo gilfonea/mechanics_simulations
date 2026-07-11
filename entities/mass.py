@@ -3,7 +3,7 @@ from vpython import *
 
 class Mass(box):
     
-    def __init__(self, tilt_angle, **boxargs):  # Constructor
+    def __init__(self, **boxargs):  # Constructor
         """
         this method constracts a mass body
 
@@ -17,23 +17,14 @@ class Mass(box):
             ValueError: none
         """        
         super().__init__(**boxargs)  # Initialize Parent
-        self.tilt_angle = tilt_angle
-        
+          
         #box.axis is a vector that modifies box.size vector. its direction is set from origin and only 
         #states the portions between x,y,z coordinates to give a pointing direction
         
         #direction = norm(vector(cos(radians(self.tilt_angle)), sin(radians(self.tilt_angle)), 0))
         #self.axis = direction * self.size.x
         # Generate the box
-        my_box = create_tilted_box(
-                    bottom_center=my_bottom_position,
-                    tilt_degrees=my_tilt_angle,
-                    tilt_axis=my_tilt_axis,
-                    length=4,
-                    height=2,
-                    width=2,
-                    box_color=color.cyan
-)
+
 
 
     def create_tilted_box(bottom_center, tilt_degrees, tilt_axis, length, height, width, box_color=color.white):
