@@ -8,8 +8,6 @@ def main():
    
     Two_bodies_on_incline.start()
 
-
-
     while True:
         pass
 
