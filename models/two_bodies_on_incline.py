@@ -6,6 +6,10 @@ from entities.mass import Mass
 from entities.ramp import Ramp
 from entities.pulley import Pulley
 
+#simulation parameters
+LEFT_SLOPE = 20
+RIGHT_SLOPE = 60
+
 
 class Two_bodies_on_incline():
 
@@ -34,8 +38,8 @@ class Two_bodies_on_incline():
         scene.height = 600 
 
         #create ramp
-        myRamp = Ramp(LeftAngle=20, 
-                  RightAngle=60, 
+        myRamp = Ramp(LeftAngle=LEFT_SLOPE, 
+                  RightAngle=RIGHT_SLOPE, 
                   DoubleRamp=True, 
                   RampColor=color.blue)
 
@@ -43,25 +47,27 @@ class Two_bodies_on_incline():
 
 
         #create masses
-        m1 = Mass(bottom_center = myRamp.right_slope_position(0,0),
-                             tilt_degrees=-60,
-                             tilt_axis=vector(0, 0, 1),    #tilt around z axis
-                             length=2,
-                             height=1,
-                             width=1,
-                             color = color.white,
-                             )
+        m1 = Mass(name="m1",
+                   bottom_center = myRamp.right_slope_position(0.1,0),
+                   tilt_degrees=-RIGHT_SLOPE,    #negative cause its a negative slope in relate to +x axis
+                   tilt_axis=vector(0, 0, 1),    #tilt around z axis
+                   length=2,
+                   height=1,
+                   width=1,
+                   color = color.white,
+                   )
 
        
         #create masses
-        m2 = Mass(bottom_center = myRamp.right_slope_position(0,0),
-                             tilt_degrees=30,
-                             tilt_axis=vector(0, 0, 1),    #tilt around z axis
-                             length=2,
-                             height=1,
-                             width=1,
-                             color = color.white,
-                             )
+        m2 = Mass( name="m2",
+                    bottom_center = myRamp.left_slope_position(0.1,0),
+                    tilt_degrees=LEFT_SLOPE,
+                    tilt_axis=vector(0, 0, 1),    #tilt around z axis
+                    length=2,
+                    height=1,
+                    width=1,
+                    color = color.white,
+                    )
 
                
 
