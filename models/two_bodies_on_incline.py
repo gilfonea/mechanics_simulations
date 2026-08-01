@@ -58,10 +58,6 @@ class Two_bodies_on_incline():
 
         m1.mass_position(bottom_center = myRamp.right_slope_position(0.1,0))
 
-        
-        points(pos=myRamp.right_slope_position(0.1,0), radius=5, color=color.red)
-        points(pos=m1.pos, radius=5, color=color.green)
-
        
         #create masses
         m2 = Mass( name="m2",
@@ -79,31 +75,74 @@ class Two_bodies_on_incline():
         #create pulley
         Mypulley = Pulley(base_position=myRamp.left_slope_position(0,0)) 
 
+        #--------------- Handle play/pause ---------------------------------------
+        # משתנה בוליאני שקובע אם ההדמיה פועלת או לא
+        running = False
+
+        # הפונקציה שתופעל בעת לחיצה על הכפתור
+        def toggle_play(b):
+            nonlocal running
+            running = not running # הפיכת המצב (אם שקר הופך לאמת, ולהיפך)
+    
+            # שינוי הטקסט על הכפתור בהתאם למצב
+            if running: 
+                b.text = "Pause"
+            else:
+                b.text = "Play"
 
 
-
-
-
-        # main simulation:
-        xleft, xright = myRamp.get_ramp_base_vertices()  #run until end of slope
-
+        # יצירת הכפתור עצמו וקישור שלו לפונקציה
+        play_button = button(text="Play", bind=toggle_play)
+        #--------------------------------------------------------------------------
 
         dx_left=0 
         dx_right=0 
 
+
+        #--------------- Handle Reset SIM ---------------------------------------
+        def reset_sim(b):
+            nonlocal running, dx_left, dx_right # גישה למשתנים המקומיים של start()
+            
+            # 1. עצירת ההדמיה ועדכון כפתור ה-Play
+            running = False
+            play_button.text = "Play"
+            
+            # 2. איפוס משתני התנועה
+            dx_left = 0
+            dx_right = 0
+            
+            # 3. החזרת הגופים למיקום ההתחלתי (כפי שהגדרת אותם במקור)
+            m1.mass_position(myRamp.right_slope_position(0.1, 0))
+            m2.mass_position(myRamp.left_slope_position(0.1, 0))
+
+        # יצירת כפתור ה-Reset
+        reset_button = button(text="Reset", bind=reset_sim)
+        #----------------------------------------------------------------------
+
+
+
+
+
+
+        # main simulation loop:
+
+        xleft, xright = myRamp.get_ramp_base_vertices()  #run until end of slope
+
         while True:
-            #if m1 got to the end of the slope
-            if myRamp.right_slope_position(dx_right,0).x < xright and myRamp.right_slope_position(dx_right,0).y > 0:
-                dx_right += 0.1
-                m1.mass_position(myRamp.right_slope_position(dx_right,0))
+
+            if running:
+                #if m1 got to the end of the slope
+                if myRamp.right_slope_position(dx_right,0).x < xright and myRamp.right_slope_position(dx_right,0).y > 0:
+                    dx_right += 0.1
+                    m1.mass_position(myRamp.right_slope_position(dx_right,0))
 
 
-            #if m2 got to the end of the slope
-            if myRamp.left_slope_position(dx_left,0).x < xleft and myRamp.left_slope_position(dx_left,0).y > 0:
-                dx_left += 0.1
-                m2.mass_position(myRamp.left_slope_position(dx_left,0))
+                #if m2 got to the end of the slope
+                if myRamp.left_slope_position(dx_left,0).x < xleft and myRamp.left_slope_position(dx_left,0).y > 0:
+                    dx_left += 0.1
+                    m2.mass_position(myRamp.left_slope_position(dx_left,0))
 
 
 
-            sleep(0.1)                 
+            rate(100)                 
         
