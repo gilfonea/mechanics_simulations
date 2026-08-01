@@ -43,13 +43,12 @@ class Two_bodies_on_incline():
                   DoubleRamp=True, 
                   RampColor=color.blue)
 
-        my_point = points(pos=myRamp.right_slope_position(0,0), radius=5, color=color.red)
+        points(pos=myRamp.right_slope_position(0,0), radius=5, color=color.red)
 
 
         #create masses
         m1 = Mass(name="m1",
-                   bottom_center = myRamp.right_slope_position(0.1,0),
-                   tilt_degrees=-RIGHT_SLOPE,    #negative cause its a negative slope in relate to +x axis
+                   tilted_degrees=-RIGHT_SLOPE,    #negative cause its a negative slope in relate to +x axis
                    tilt_axis=vector(0, 0, 1),    #tilt around z axis
                    length=2,
                    height=1,
@@ -57,11 +56,16 @@ class Two_bodies_on_incline():
                    color = color.white,
                    )
 
+        m1.mass_position(bottom_center = myRamp.right_slope_position(0.1,0))
+
+        
+        points(pos=myRamp.right_slope_position(0.1,0), radius=5, color=color.red)
+        points(pos=m1.pos, radius=5, color=color.green)
+
        
         #create masses
         m2 = Mass( name="m2",
-                    bottom_center = myRamp.left_slope_position(0.1,0),
-                    tilt_degrees=LEFT_SLOPE,
+                    tilted_degrees=LEFT_SLOPE,
                     tilt_axis=vector(0, 0, 1),    #tilt around z axis
                     length=2,
                     height=1,
@@ -70,24 +74,36 @@ class Two_bodies_on_incline():
                     )
 
                
-
+        m2.mass_position(bottom_center = myRamp.left_slope_position(0.1,0))
 
         #create pulley
         Mypulley = Pulley(base_position=myRamp.left_slope_position(0,0)) 
+
+
+
+
+
 
         # main simulation:
         xleft, xright = myRamp.get_ramp_base_vertices()  #run until end of slope
 
 
+        dx_left=0 
+        dx_right=0 
 
-        dt=0       
-        while dt < 10 :
+        while True:
             #if m1 got to the end of the slope
-            if m1.pos.x < xleft:
-                m1.pos =  myRamp.right_slope_position(0.5+dt,0)
+            if myRamp.right_slope_position(dx_right,0).x < xright and myRamp.right_slope_position(dx_right,0).y > 0:
+                dx_right += 0.1
+                m1.mass_position(myRamp.right_slope_position(dx_right,0))
+
+
             #if m2 got to the end of the slope
-            if m2.pos.x < xright:
-                m2.pos =  myRamp.left_slope_position(0.5+dt,0)
-            dt += 0.1
+            if myRamp.left_slope_position(dx_left,0).x < xleft and myRamp.left_slope_position(dx_left,0).y > 0:
+                dx_left += 0.1
+                m2.mass_position(myRamp.left_slope_position(dx_left,0))
+
+
+
             sleep(0.1)                 
         
