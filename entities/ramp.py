@@ -26,14 +26,14 @@ class Ramp:
 
 
  
-    def right_slope_position(self, Xslope, Yslope):
+    def right_slope_position(self, local_position):
         """
         this method transforms right ramp coordinates to the real original x-y coordinates
         position 0,0 is the top of the slope
 
         Args:
-            Xslope                  (float): The x coordinates on ramp x axis.
-            Yslope                  (float): The y coordinates on ramp y axis (currently unavilable)
+            local_position          (vector): The local x,y,z coordinates on the ramp. 
+                                              x is along the slope, y is perpendicular to the slope.
             
         Returns:
             vector: (x,y,z) global axes coordinates
@@ -42,32 +42,30 @@ class Ramp:
             ValueError: If the user ID is not found.
         """
             
+        Xslope = local_position.x
+        Yslope = local_position.y
 
         # TODO: here add Xslope, Yslope protection against position longer that slope 
 
-        # TODO: add support to calculate x,y in case Yslope is not zero
-
-
         #Xslope_origin = 0 + self.RADIUS * sin(radians(self.RightAngle))
         #Yslope_origin = self.RAMP_HEIGHT + self.RADIUS * cos(radians(self.RightAngle))
-        X = ((Yslope * sin(radians(self.RightAngle)))+(Xslope * cos(radians(self.RightAngle))))
+        X = ((Yslope * sin(radians(self.RightAngle))) + (Xslope * cos(radians(self.RightAngle))))
         Y = (self.RAMP_HEIGHT - (Xslope * sin(radians(self.RightAngle)))) + (Yslope * cos(radians(self.RightAngle)))
 
 
-        return(vector(X,Y,0))
+        return vector(X, Y, 0)
 
 
 
-    def left_slope_position(self, Xslope, Yslope):
+    def left_slope_position(self, local_position):
         """
         this method transforms left ramp coordinates to the real original x-y coordinates
         position 0,0 is the top of the slope
 
         Args:
-            Xslope                  (float): The x coordinates on ramp x axis.
-            Yslope                  (float): The y coordinates on ramp y axis (currently unavilable)
+            local_position          (vector): The local x,y,z coordinates on the ramp. 
+                                              x is along the slope, y is perpendicular to the slope.
             
-
         Returns:
             vector: (x,y,z) global axes coordinates
 
@@ -75,16 +73,15 @@ class Ramp:
             ValueError: If the user ID is not found.
         """
             
+        Xslope = local_position.x
+        Yslope = local_position.y
 
         # TODO: here add Xslope, Yslope protection against position longer that slope 
 
-        # TODO: add support to calculate x,y in case Yslope is not zero
-        
-
-        X = - ((Yslope * sin(radians(self.LeftAngle)))+(Xslope * cos(radians(self.LeftAngle))))
+        X = - ((Yslope * sin(radians(self.LeftAngle))) + (Xslope * cos(radians(self.LeftAngle))))
         Y = (self.RAMP_HEIGHT - (Xslope * sin(radians(self.LeftAngle)))) + (Yslope * cos(radians(self.LeftAngle)))
 
-        return(vector(X,Y,0))
+        return vector(X, Y, 0)
 
 
 

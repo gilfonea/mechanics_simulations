@@ -9,6 +9,8 @@ from entities.pulley import Pulley
 #simulation parameters
 LEFT_SLOPE = 20
 RIGHT_SLOPE = 60
+STARTING_POINT = 0.5
+dt = 0.1
 
 
 class Two_bodies_on_incline():
@@ -43,8 +45,6 @@ class Two_bodies_on_incline():
                   DoubleRamp=True, 
                   RampColor=color.blue)
 
-        points(pos=myRamp.right_slope_position(0,0), radius=5, color=color.red)
-
 
         #create masses
         m1 = Mass(name="m1",
@@ -55,9 +55,17 @@ class Two_bodies_on_incline():
                    width=1,
                    color = color.white,
                    )
+        m1.x0 = STARTING_POINT
+        m1.v0 = 0
+        m1.acceleration = 10
 
-        m1.mass_position(bottom_center = myRamp.right_slope_position(0.1,0))
+        # 1. הגדרת המיקום כווקטור מקומי במערכת הצירים של המדרון
+        m1_wanted_pos = vector(m1.x0, 0, 0)
 
+        
+        # 2. שליחת הווקטור המקומי לפונקציה כדי לקבל מיקום גלובלי, והצבת המסה
+        m1.position = myRamp.right_slope_position(m1_wanted_pos)
+        m1.mass_position()
        
         #create masses
         m2 = Mass( name="m2",
@@ -69,15 +77,25 @@ class Two_bodies_on_incline():
                     color = color.white,
                     )
 
-               
-        m2.mass_position(bottom_center = myRamp.left_slope_position(0.1,0))
+        m2.x0 = STARTING_POINT  
+        m2.v0 = 0
+        m2.acceleration = 10  
+
+        # 1. הגדרת המיקום כווקטור מקומי במערכת הצירים של המדרון
+        m2_wanted_pos = vector(m2.x0, 0, 0)
+
+        
+        # 2. שליחת הווקטור המקומי לפונקציה כדי לקבל מיקום גלובלי, והצבת המסה
+        m2.position = myRamp.left_slope_position(m2_wanted_pos)
+        m2.mass_position()
 
         #create pulley
-        Mypulley = Pulley(base_position=myRamp.left_slope_position(0,0)) 
+        Mypulley = Pulley(base_position=myRamp.left_slope_position(vector(0,0,0))) 
 
         #--------------- Handle play/pause ---------------------------------------
         # משתנה בוליאני שקובע אם ההדמיה פועלת או לא
         running = False
+        t = 0
 
         # הפונקציה שתופעל בעת לחיצה על הכפתור
         def toggle_play(b):
@@ -95,33 +113,35 @@ class Two_bodies_on_incline():
         play_button = button(text="Play", bind=toggle_play)
         #--------------------------------------------------------------------------
 
-        dx_left=0 
-        dx_right=0 
 
 
         #--------------- Handle Reset SIM ---------------------------------------
         def reset_sim(b):
-            nonlocal running, dx_left, dx_right # גישה למשתנים המקומיים של start()
+            nonlocal running, t # חובה להוסיף את t כדי לאפס את הזמן הגלובלי
             
             # 1. עצירת ההדמיה ועדכון כפתור ה-Play
             running = False
             play_button.text = "Play"
+            t = 0
             
-            # 2. איפוס משתני התנועה
-            dx_left = 0
-            dx_right = 0
-            
-            # 3. החזרת הגופים למיקום ההתחלתי (כפי שהגדרת אותם במקור)
-            m1.mass_position(myRamp.right_slope_position(0.1, 0))
-            m2.mass_position(myRamp.left_slope_position(0.1, 0))
+            # 2. איפוס משתני התנועה (חזרה לווקטורים מקומיים)
+            m1.x0 = STARTING_POINT
+            m2.x0 = STARTING_POINT
 
-        # יצירת כפתור ה-Reset
-        reset_button = button(text="Reset", bind=reset_sim)
+            m1_wanted_pos = vector(m1.x0, 0, 0)
+            m2_wanted_pos = vector(m2.x0, 0, 0)
+            
+            # 3. החזרת הגופים למיקום ההתחלתי (בעזרת הווקטור)
+            m1.position = myRamp.right_slope_position(m1_wanted_pos)
+            m1.mass_position()
+            
+            m2.position = myRamp.left_slope_position(m2_wanted_pos)
+            m2.mass_position()
         #----------------------------------------------------------------------
 
 
-
-
+        # יצירת כפתור ה-Reset
+        reset_button = button(text="Reset", bind=reset_sim)
 
 
         # main simulation loop:
@@ -131,18 +151,28 @@ class Two_bodies_on_incline():
         while True:
 
             if running:
-                #if m1 got to the end of the slope
-                if myRamp.right_slope_position(dx_right,0).x < xright and myRamp.right_slope_position(dx_right,0).y > 0:
-                    dx_right += 0.1
-                    m1.mass_position(myRamp.right_slope_position(dx_right,0))
 
+# עבור מסה 1
+                if myRamp.right_slope_position(m1_wanted_pos).x < xright and myRamp.right_slope_position(m1_wanted_pos).y > 0:
+                    
+                    # חישוב הפיזיקה לאורך ציר ה-x של המדרון
+                    m1_wanted_pos.x = m1.x0 + (m1.v0 * t) + (0.5 * m1.acceleration * (t**2))
+                    
+                    # עדכון המיקום הגלובלי וציור
+                    m1.position = myRamp.right_slope_position(m1_wanted_pos)
+                    m1.mass_position()
 
-                #if m2 got to the end of the slope
-                if myRamp.left_slope_position(dx_left,0).x < xleft and myRamp.left_slope_position(dx_left,0).y > 0:
-                    dx_left += 0.1
-                    m2.mass_position(myRamp.left_slope_position(dx_left,0))
+                # עבור מסה 2
+                if myRamp.left_slope_position(m2_wanted_pos).x > -xleft and myRamp.left_slope_position(m2_wanted_pos).y > 0:
+                    
+                    # חישוב הפיזיקה לאורך ציר ה-x של המדרון
+                    m2_wanted_pos.x = m2.x0 + (m2.v0 * t) + (0.5 * m2.acceleration * (t**2))
+                    
+                    # עדכון המיקום הגלובלי וציור
+                    m2.position = myRamp.left_slope_position(m2_wanted_pos)
+                    m2.mass_position()
 
-
+                t = t + dt
 
             rate(100)                 
         
