@@ -13,15 +13,17 @@ class Ramp:
         self.RAMP_HEIGHT = 4
         self.RADIUS = 1
 
-        self.Xleft = self.RAMP_HEIGHT/tan(radians(self.RightAngle))    #opposite to axises - dont know why
-        self.Xright = self.RAMP_HEIGHT/tan(radians(self.LeftAngle))    #opposite to axises - dont know why 
+        self.Xright = self.RAMP_HEIGHT/tan(radians(self.RightAngle))    #opposite to axises - dont know why
+        self.Xleft = self.RAMP_HEIGHT/tan(radians(self.LeftAngle))    #opposite to axises - dont know why 
 
         if self.DoubleRamp == True:
-            self.triangleshape = [ [self.Xright,0], [0,self.RAMP_HEIGHT], [-self.Xleft,0], [self.Xright,0]]
+            # שרטוט נגד כיוון השעון: שמאל למטה -> ימין למטה -> אמצע למעלה -> חזרה לשמאל למטה
+            self.triangleshape = [ [-self.Xleft, 0], [self.Xright, 0], [0, self.RAMP_HEIGHT], [-self.Xleft, 0] ]
         else:
-            self.triangleshape = [ [self.Xright,0], [0,self.RAMP_HEIGHT], [0,0], [self.Xright,0]]
+            # שרטוט נגד כיוון השעון: מרכז למטה -> ימין למטה -> אמצע למעלה -> מרכז למטה
+            self.triangleshape = [ [0, 0], [self.Xright, 0], [0, self.RAMP_HEIGHT], [0, 0] ]
 
-        linepath = [ vec(0,0,-4), vec(0,0,4) ]
+        linepath = [ vec(0,0,4), vec(0,0,-4) ]
         ramp = extrusion(shape=self.triangleshape, path=linepath, color=self.RampColor,opacity=0.5)
 
 
