@@ -117,7 +117,8 @@ class Two_bodies_on_incline():
 
         #--------------- Handle Reset SIM ---------------------------------------
         def reset_sim(b):
-            nonlocal running, t # חובה להוסיף את t כדי לאפס את הזמן הגלובלי
+
+            nonlocal running, t, m1_wanted_pos, m2_wanted_pos
             
             # 1. עצירת ההדמיה ועדכון כפתור ה-Play
             running = False
@@ -152,7 +153,7 @@ class Two_bodies_on_incline():
 
             if running:
 
-# עבור מסה 1
+                # עבור מסה 1
                 if myRamp.right_slope_position(m1_wanted_pos).x < xright and myRamp.right_slope_position(m1_wanted_pos).y > 0:
                     
                     # חישוב הפיזיקה לאורך ציר ה-x של המדרון
