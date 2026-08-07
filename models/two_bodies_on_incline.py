@@ -10,7 +10,7 @@ from entities.pulley import Pulley
 LEFT_SLOPE = 20
 RIGHT_SLOPE = 60
 STARTING_POINT = 0.5
-dt = 0.1
+dt = 0.01
 
 
 class Two_bodies_on_incline():
