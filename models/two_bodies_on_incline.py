@@ -9,7 +9,8 @@ from entities.pulley import Pulley
 #simulation parameters
 LEFT_SLOPE = 20
 RIGHT_SLOPE = 60
-STARTING_POINT = 0.5
+M1_STARTING_POINT = 0.5
+M2_STARTING_POINT = 2
 dt = 0.01
 
 
@@ -55,7 +56,7 @@ class Two_bodies_on_incline():
                    width=1,
                    color = color.white,
                    )
-        m1.x0 = STARTING_POINT
+        m1.x0 = M1_STARTING_POINT
         m1.v0 = 0
         m1.acceleration = 10
 
@@ -77,7 +78,7 @@ class Two_bodies_on_incline():
                     color = color.white,
                     )
 
-        m2.x0 = STARTING_POINT  
+        m2.x0 = M2_STARTING_POINT  
         m2.v0 = 0
         m2.acceleration = 10  
 
@@ -126,8 +127,8 @@ class Two_bodies_on_incline():
             t = 0
             
             # 2. איפוס משתני התנועה (חזרה לווקטורים מקומיים)
-            m1.x0 = STARTING_POINT
-            m2.x0 = STARTING_POINT
+            m1.x0 = M1_STARTING_POINT
+            m2.x0 = M2_STARTING_POINT
 
             m1_wanted_pos = vector(m1.x0, 0, 0)
             m2_wanted_pos = vector(m2.x0, 0, 0)
@@ -167,7 +168,7 @@ class Two_bodies_on_incline():
                 if myRamp.left_slope_position(m2_wanted_pos).x > -xleft and myRamp.left_slope_position(m2_wanted_pos).y > 0:
                     
                     # חישוב הפיזיקה לאורך ציר ה-x של המדרון
-                    m2_wanted_pos.x = m2.x0 + (m2.v0 * t) + (0.5 * m2.acceleration * (t**2))
+                    m2_wanted_pos.x = m2.x0 + (m2.v0 * t) - (0.5 * m2.acceleration * (t**2))
                     
                     # עדכון המיקום הגלובלי וציור
                     m2.position = myRamp.left_slope_position(m2_wanted_pos)
