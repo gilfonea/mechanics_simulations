@@ -9,8 +9,11 @@ from entities.pulley import Pulley
 #simulation parameters
 LEFT_SLOPE = 20
 RIGHT_SLOPE = 60
-M1_STARTING_POINT = 0.5
-M2_STARTING_POINT = 2
+PULLEY_POSITION = 0.5
+M1_STARTING_POSITION = 1     #must be greater than PULLEY_POSITION
+M2_STARTING_POSITION = 3     #must be greater than PULLEY_POSITION
+M1_ACCELERATION = 10
+M2_ACCELERATION = -10
 dt = 0.01
 
 
@@ -56,16 +59,16 @@ class Two_bodies_on_incline():
                    width=1,
                    color = color.white,
                    )
-        m1.x0 = M1_STARTING_POINT
+        m1.x0 = M1_STARTING_POSITION
         m1.v0 = 0
-        m1.acceleration = 10
+        m1.acceleration = M1_ACCELERATION
 
         # 1. הגדרת המיקום כווקטור מקומי במערכת הצירים של המדרון
         m1_wanted_pos = vector(m1.x0, 0, 0)
 
         
         # 2. שליחת הווקטור המקומי לפונקציה כדי לקבל מיקום גלובלי, והצבת המסה
-        m1.position = myRamp.right_slope_position(m1_wanted_pos)
+        m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
         m1.mass_position()
        
         #create masses
@@ -78,20 +81,27 @@ class Two_bodies_on_incline():
                     color = color.white,
                     )
 
-        m2.x0 = M2_STARTING_POINT  
+        m2.x0 = M2_STARTING_POSITION  
         m2.v0 = 0
-        m2.acceleration = 10  
+        m2.acceleration = M2_ACCELERATION 
 
         # 1. הגדרת המיקום כווקטור מקומי במערכת הצירים של המדרון
         m2_wanted_pos = vector(m2.x0, 0, 0)
 
         
         # 2. שליחת הווקטור המקומי לפונקציה כדי לקבל מיקום גלובלי, והצבת המסה
-        m2.position = myRamp.left_slope_position(m2_wanted_pos)
+        m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
         m2.mass_position()
 
         #create pulley
         Mypulley = Pulley(base_position=myRamp.left_slope_position(vector(0,0,0))) 
+
+        top_pulley_pos = Mypulley.pulley_top_of_wheel_coordinates()
+
+        # יצירת החוט. הוא מקבל רשימה של 3 מיקומים התחלתיים
+        rope = curve(pos=[m1.bottom_position, top_pulley_pos, m2.bottom_position], color=color.white, radius=0.02)
+
+
 
         #--------------- Handle play/pause ---------------------------------------
         # משתנה בוליאני שקובע אם ההדמיה פועלת או לא
@@ -127,18 +137,25 @@ class Two_bodies_on_incline():
             t = 0
             
             # 2. איפוס משתני התנועה (חזרה לווקטורים מקומיים)
-            m1.x0 = M1_STARTING_POINT
-            m2.x0 = M2_STARTING_POINT
+            m1.x0 = M1_STARTING_POSITION
+            m2.x0 = M2_STARTING_POSITION
 
             m1_wanted_pos = vector(m1.x0, 0, 0)
             m2_wanted_pos = vector(m2.x0, 0, 0)
             
             # 3. החזרת הגופים למיקום ההתחלתי (בעזרת הווקטור)
-            m1.position = myRamp.right_slope_position(m1_wanted_pos)
+            m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
             m1.mass_position()
             
-            m2.position = myRamp.left_slope_position(m2_wanted_pos)
+            m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
             m2.mass_position()
+
+
+            # 4. איפוס מיקום החוט (קצוות החבל) למיקום ההתחלתי של המסות
+            rope.modify(0, pos=m1.bottom_position)
+            rope.modify(2, pos=m2.bottom_position)
+
+
         #----------------------------------------------------------------------
 
 
@@ -148,31 +165,49 @@ class Two_bodies_on_incline():
 
         # main simulation loop:
 
+        
         xleft, xright = myRamp.get_ramp_base_vertices()  #run until end of slope
 
         while True:
 
             if running:
 
+                m1_next_pos = myRamp.right_slope_position(m1_wanted_pos)
+
                 # עבור מסה 1
-                if myRamp.right_slope_position(m1_wanted_pos).x < xright and myRamp.right_slope_position(m1_wanted_pos).y > 0:
+                if PULLEY_POSITION < m1_next_pos.x < xright and m1_next_pos.y > 0:
                     
                     # חישוב הפיזיקה לאורך ציר ה-x של המדרון
                     m1_wanted_pos.x = m1.x0 + (m1.v0 * t) + (0.5 * m1.acceleration * (t**2))
                     
                     # עדכון המיקום הגלובלי וציור
-                    m1.position = myRamp.right_slope_position(m1_wanted_pos)
+                    m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
                     m1.mass_position()
 
+
+                m2_next_pos = myRamp.left_slope_position(m2_wanted_pos)
                 # עבור מסה 2
-                if myRamp.left_slope_position(m2_wanted_pos).x > -xleft and myRamp.left_slope_position(m2_wanted_pos).y > 0:
+                if -xleft < m2_next_pos.x < -PULLEY_POSITION and m2_next_pos.y > 0:
                     
                     # חישוב הפיזיקה לאורך ציר ה-x של המדרון
-                    m2_wanted_pos.x = m2.x0 + (m2.v0 * t) - (0.5 * m2.acceleration * (t**2))
+                    m2_wanted_pos.x = m2.x0 + (m2.v0 * t) + (0.5 * m2.acceleration * (t**2))
                     
                     # עדכון המיקום הגלובלי וציור
-                    m2.position = myRamp.left_slope_position(m2_wanted_pos)
+                    m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
                     m2.mass_position()
+
+
+                # --- עדכון מיקום החוט ---
+                
+                # מעדכן את קצה החוט הראשון (אינדקס 0) למיקום החדש של מסה 1
+                rope.modify(0, pos=m1.bottom_position)
+                
+                # הנקודה האמצעית (אינדקס 1) היא הגלגלת, היא קבועה ולכן לא נוגעים בה
+                
+                # מעדכן את קצה החוט השני (אינדקס 2) למיקום החדש של מסה 2
+                rope.modify(2, pos=m2.bottom_position)
+
+
 
                 t = t + dt
 

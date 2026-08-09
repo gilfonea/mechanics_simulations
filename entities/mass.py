@@ -1,14 +1,14 @@
 from vpython import *
 
 class Mass(box):
-    def __init__(self, name, tilted_degrees, mass=1, position=vec(0,0,0), v0=0, x0=0, acceleration=0, **kwargs):
+    def __init__(self, name, tilted_degrees, mass=1, bottom_position=vec(0,0,0), v0=0, x0=0, acceleration=0, **kwargs):
 
         self.name = name
         self.mass = mass
         self.v0 = v0
         self.x0 = x0
         self.acceleration = acceleration
-        self.position = position
+        self.bottom_position = bottom_position
         # 5. Initialize the parent VPython box with the calculated values
         super().__init__(
             **kwargs 
@@ -38,7 +38,7 @@ class Mass(box):
         # The geometric center is half the height away from the bottom, 
         # in the direction of the new tilted "up" vector.
         offset = (self.height/2) * hat(new_up)
-        true_center = self.position + offset
+        true_center = self.bottom_position + offset
 
         self.pos = true_center
         self.axis = new_axis
