@@ -1,5 +1,8 @@
 from vpython import *
 
+#parameters
+RIM_THICKNESS = 0.08
+RIM_RADIUS = 0.3
 
 class Pulley:
 
@@ -25,9 +28,9 @@ class Pulley:
         self.center_position = vector(base_position.x, base_position.y + fork_length, base_position.z)
 
         # --- Wheel Parameters ---
-        rim_radius = 0.5
-        rim_thickness = 0.1
-        hub_radius = 0.2
+        rim_radius = RIM_RADIUS
+        rim_thickness = RIM_THICKNESS
+        hub_radius = 0.1
         hub_length = 0.4
         num_spokes = 20
         spoke_thickness = 0.02
@@ -85,29 +88,24 @@ class Pulley:
         self.fork = compound([self.fork_left, self.fork_right])
 
         # --- Create Complete Wheel Assembly (including fork, but separately stored) ---
-        self.wheel = compound([rim, hub] + spokes + [self.fork])
+        # --- Create Complete Wheel Assembly ---
+        self.wheel = compound([rim, hub] + spokes + [self.fork], origin=self.center_position)
+
+
+    def get_top_wheel_position(self):
+        """
+        מחזירה וקטור של המיקום של הנקודה העליונה ביותר של קצה גלגל הגלגלת.
+        """
+        # המשתנים מהבנאי (אפשר גם להפוך אותם למשתני מחלקה self.rim_radius וכו')
+        rim_radius = RIM_RADIUS
+        rim_thickness = RIM_THICKNESS
         
-    def pulley_top_of_wheel_coordinates(self):  # Constructor
-        """
-        this method calculates what is the coordinate of the 
-        top of the wheel for the purpose of connecting strings to the pulley
-
-        Args:
-            none         : vector for locating the bottom of the base of the pulley
-
-        Returns:
-            none                    
-
-        Raises:
-            ValueError: none
-        """
-        return(vector(0,self.center_position.y,0)) 
-
-'''     
-# Animation loop
-dt = 0.01
-while True:
-    rate(100)
-    wheel.rotate(angle=omega * dt, axis=vector(0, 0, 1), origin=vector(0, 0, 0))
-'''
+        # הרדיוס החיצוני המוחלט של הגלגל הוא רדיוס הטבעת ועוד חצי מהעובי שלה
+        outer_radius = rim_radius + (rim_thickness / 2)
+        
+        # self.wheel.pos יושב עכשיו בדיוק במרכז הגלגל (בזכות ה-origin שהוספנו)
+        # hat(self.wheel.up) מחזיר וקטור יחידה המצביע כלפי מעלה ביחס לזווית הנוכחית של הגלגלת
+        top_pos = self.wheel.pos + outer_radius * hat(self.wheel.up)
+        
+        return top_pos
         

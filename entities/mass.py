@@ -43,3 +43,14 @@ class Mass(box):
         self.pos = true_center
         self.axis = new_axis
         self.up = new_up
+
+    def get_top_center(self):
+        """
+        מחזירה וקטור (vec) של הקואורדינאטות של מרכז הפאה העליונה של התיבה.
+        """
+        # self.pos הוא מרכז התיבה
+        # hat(self.up) נותן לנו וקטור יחידה בכיוון הלמעלה "היחסי" של התיבה (לפי השיפוע)
+        # אנחנו מתקדמים ממרכז התיבה מרחק של חצי גובה בכיוון זה
+        top_center = self.pos + (self.height / 2) * hat(self.up)
+        
+        return top_center
