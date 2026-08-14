@@ -6,7 +6,8 @@ from models.two_bodies_on_incline import Two_bodies_on_incline
 def main():
 
    
-    Two_bodies_on_incline.start()
+    sim = Two_bodies_on_incline()
+    sim.start()
 
     while True:
         pass
