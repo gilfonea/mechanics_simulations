@@ -132,6 +132,11 @@ class Two_bodies_on_incline():
             else:
                 rope.visible = False
 
+            # --- עדכון מיקום תוויות המסות באיפוס ---
+            label_m1.pos = m1.get_top_center()
+            label_m2.pos = m2.get_top_center()
+
+
         reset_button = button(text="Reset", bind=reset_sim)
 
         # --------------- Handle Rope Switch ---------------------------------------
@@ -141,6 +146,12 @@ class Two_bodies_on_incline():
             nonlocal has_rope
             has_rope = c.checked # קורא האם התיבה מסומנת (True/False)
             # מכיוון ששינוי תאוצה מצריך איפוס של משוואת הזמן, נפעיל אוטומטית Reset
+
+            # --- יצירת תוויות השמות למסות ---
+            # yoffset יגרום לטקסט לרחף מעט מעל המסה
+            label_m1 = label(pos=m1.get_top_center(), text='m1', box=False, opacity=0, line=False, height=14, yoffset=15)
+            label_m2 = label(pos=m2.get_top_center(), text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
+
             reset_sim()
 
         # הוספת מתג בוליאני לבחירת מצב החוט
@@ -150,6 +161,38 @@ class Two_bodies_on_incline():
         # main simulation loop:
         xleft, xright = myRamp.get_ramp_base_vertices() 
 
+# --- תחילת הקוד להוספת הזוויות ---
+        
+        # תווית לזווית השמאלית
+        label(
+            pos=vector(-xleft, 0, 0),  # מיקום הפינה השמאלית
+            text=f'{LEFT_SLOPE}°',     # הטקסט שיוצג
+            xoffset=30,                # הזזה קלה ימינה כדי שלא יוסתר על ידי הפינה
+            yoffset=10,                # הזזה קלה למעלה
+            box=False,                 # ללא מסגרת סביב הטקסט
+            line=False,                # ללא קו שמחבר בין התווית לנקודה
+            height=16,
+            color=color.white
+        )
+
+        # תווית לזווית הימנית
+        label(
+            pos=vector(xright, 0, 0),  # מיקום הפינה הימנית
+            text=f'{RIGHT_SLOPE}°',    # הטקסט שיוצג
+            xoffset=-30,               # הזזה קלה שמאלה
+            yoffset=10,                # הזזה קלה למעלה
+            box=False,
+            line=False,
+            height=16,
+            color=color.white
+        )
+        # --- סוף הקוד להוספת הזוויות ---
+
+
+        # --- יצירת תוויות השמות למסות ---
+        # yoffset יגרום לטקסט לרחף מעט מעל המסה
+        label_m1 = label(pos=m1.get_top_center(), text='m1', box=False, opacity=0, line=False, height=14, yoffset=15)
+        label_m2 = label(pos=m2.get_top_center(), text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
         reset_sim()  #update sim parameters before first run
 
         while True:
@@ -177,6 +220,12 @@ class Two_bodies_on_incline():
                         rope.modify(0, pos=m1.get_top_center())
                         rope.modify(2, pos=m2.get_top_center())
 
+                        # --- עדכון מיקום התוויות בזמן תנועה ---
+                        label_m1.pos = m1.get_top_center()
+                        label_m2.pos = m2.get_top_center()
+
+
+
                         t = t + dt
                     else:
                         running = False
@@ -188,11 +237,13 @@ class Two_bodies_on_incline():
                             m1_wanted_pos.x = m1.x0 + (m1.v0 * t) + (0.5 * m1.acceleration * (t**2))
                             m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
                             m1.mass_position()
-                        
+                            label_m1.pos = m1.get_top_center() #update mass label
+
                         if m2_can_move:
                             m2_wanted_pos.x = m2.x0 + (m2.v0 * t) + (0.5 * m2.acceleration * (t**2))
                             m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
                             m2.mass_position()
+                            label_m2.pos = m1.get_top_center() ##update mass label
 
                         t = t + dt
                     else:
