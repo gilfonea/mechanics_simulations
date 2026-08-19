@@ -2,22 +2,17 @@ from vpython import *
 from entities.mass import Mass
 from entities.ramp import Ramp
 from entities.pulley import Pulley
+from utils.physics import *
 from constants import g
 
 # simulation parameters
-LEFT_SLOPE = 20
-RIGHT_SLOPE = 60
+LEFT_SLOPE = 30
+RIGHT_SLOPE = 50
 PULLEY_POSITION = 0.5
 M1_STARTING_POSITION = 1     # must be greater than PULLEY_POSITION
-M2_STARTING_POSITION = 3     # must be greater than PULLEY_POSITION
-
-# תאוצות כשהחוט מחובר (מערכת משותפת)
-M1_COUPLED_ACCEL = 10
-M2_COUPLED_ACCEL = -10
-
-# תאוצות כשהחוט מנותק (נפילה חופשית על המדרון, יש להזין את הערכים הפיזיקליים הנכונים)
-M1_FREE_ACCEL =  g * sin(radians(RIGHT_SLOPE))
-M2_FREE_ACCEL =  g * sin(radians(LEFT_SLOPE))
+M2_STARTING_POSITION = 4     # must be greater than PULLEY_POSITION
+M1_MASS = 2 #kg
+M2_MASS = 1 #kg
 
 dt = 0.01
 
@@ -42,30 +37,32 @@ class Two_bodies_on_incline():
 
         # create masses
         m1 = Mass(name="m1",
+                   mass = M1_MASS,   
                    tilted_degrees=-RIGHT_SLOPE,
                    tilt_axis=vector(0, 0, 1),      #tilt around z axis
                    length=2,
                    height=1,
-                   width=1,
+                   width=M1_MASS,
                    color=color.white)
         m1.x0 = M1_STARTING_POSITION
         m1.v0 = 0
-        m1.acceleration = M1_COUPLED_ACCEL # תאוצה התחלתית (עם חוט)
+        m1.acceleration = 0 # תאוצה התחלתית (עם חוט)
 
         m1_wanted_pos = vector(m1.x0, 0, 0)
         m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
         m1.mass_position()
        
         m2 = Mass(name="m2",
+                   mass = M2_MASS,   #kg
                    tilted_degrees=LEFT_SLOPE,
                    tilt_axis=vector(0, 0, 1),
                    length=2,
                    height=1,
-                   width=1,
+                   width=M2_MASS,
                    color=color.white)
         m2.x0 = M2_STARTING_POSITION  
         m2.v0 = 0
-        m2.acceleration = M2_COUPLED_ACCEL # תאוצה התחלתית (עם חוט)
+        m2.acceleration = 0 # תאוצה התחלתית (עם חוט)
 
         m2_wanted_pos = vector(m2.x0, 0, 0)
         m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
@@ -78,11 +75,11 @@ class Two_bodies_on_incline():
         # יצירת החוט
         rope = curve(pos=[m1.get_top_center(), top_pulley_pos, m2.get_top_center()], color=color.white, radius=0.02)
 
-
-        # משתנים גלובליים למצב המערכת
         running = False
-        has_rope = True # משתנה חדש ששומר את מצב החוט
-        t = 0
+        has_rope = True 
+
+        # יצירת התווית (מקובעת למיקום ספציפי במסך)
+        accel_label = label(pos=vector(0, -7, 0), text='Acceleration: ', box=False, height=16)
 
         # --------------- Handle play/pause ---------------------------------------
         def toggle_play(b):
@@ -115,17 +112,25 @@ class Two_bodies_on_incline():
             m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
             m2.mass_position()
 
-            # עדכון החוט והתאוצות בהתאם למצב הנוכחי של המתג
+            # חישוב התאוצות החדשות באמצעות מודול הפיזיקה
+            a1, a2 = calculate_accelerations(
+                m1=m1.mass, 
+                theta1_deg=RIGHT_SLOPE, 
+                m2=m2.mass, 
+                theta2_deg=LEFT_SLOPE, 
+                has_rope=has_rope
+            )
+            
+            m1.acceleration = a1
+            m2.acceleration = a2
+
+            # עדכון נראות החוט
             if has_rope:
                 rope.visible = True
                 rope.modify(0, pos=m1.get_top_center())
                 rope.modify(2, pos=m2.get_top_center())
-                m1.acceleration = M1_COUPLED_ACCEL
-                m2.acceleration = M2_COUPLED_ACCEL
             else:
                 rope.visible = False
-                m1.acceleration = M1_FREE_ACCEL
-                m2.acceleration = M2_FREE_ACCEL
 
         reset_button = button(text="Reset", bind=reset_sim)
 
@@ -142,9 +147,10 @@ class Two_bodies_on_incline():
         rope_checkbox = checkbox(bind=toggle_rope, text='Connect Rope', checked=True)
         # -------------------------------------------------------------------------
 
-
         # main simulation loop:
         xleft, xright = myRamp.get_ramp_base_vertices() 
+
+        reset_sim()  #update sim parameters before first run
 
         while True:
             if running:
@@ -192,5 +198,7 @@ class Two_bodies_on_incline():
                     else:
                         # שניהם הגיעו לקצה
                         running = False
+
+                accel_label.text = f'm1 Acceleration: {m1.acceleration:.2f} m/s²\nm2 Acceleration: {m2.acceleration:.2f} m/s²\nTime: {t:.2f} s'
 
             rate(100)
