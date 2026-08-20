@@ -7,12 +7,14 @@ from constants import g
 
 # simulation parameters
 LEFT_SLOPE = 30
-RIGHT_SLOPE = 50
+RIGHT_SLOPE = 20
 PULLEY_POSITION = 0.5
 M1_STARTING_POSITION = 1     # must be greater than PULLEY_POSITION
 M2_STARTING_POSITION = 4     # must be greater than PULLEY_POSITION
 M1_MASS = 2 #kg
 M2_MASS = 1 #kg
+SLOPES = 1
+
 
 dt = 0.01
 
@@ -32,7 +34,7 @@ class Two_bodies_on_incline():
         # create ramp
         myRamp = Ramp(LeftAngle=LEFT_SLOPE, 
                       RightAngle=RIGHT_SLOPE, 
-                      DoubleRamp=True, 
+                      num_slopes=SLOPES, 
                       RampColor=color.blue)
 
         # create masses
@@ -51,32 +53,44 @@ class Two_bodies_on_incline():
         m1_wanted_pos = vector(m1.x0, 0, 0)
         m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
         m1.mass_position()
-       
-        m2 = Mass(name="m2",
-                   mass = M2_MASS,   #kg
-                   tilted_degrees=LEFT_SLOPE,
-                   tilt_axis=vector(0, 0, 1),
-                   length=2,
-                   height=1,
-                   width=M2_MASS,
-                   color=color.white)
-        m2.x0 = M2_STARTING_POSITION  
-        m2.v0 = 0
-        m2.acceleration = 0 # תאוצה התחלתית (עם חוט)
 
-        m2_wanted_pos = vector(m2.x0, 0, 0)
-        m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
-        m2.mass_position()
 
-        # create pulley
-        Mypulley = Pulley(base_position=myRamp.left_slope_position(vector(0,0,0))) 
-        top_pulley_pos = Mypulley.get_top_wheel_position()
+# --- הגדרות ברירת מחדל כדי למנוע NameError ---
+        m2 = None
+        m2_wanted_pos = None
+        label_m2 = None
+        rope = None
+        has_rope = False
 
-        # יצירת החוט
-        rope = curve(pos=[m1.get_top_center(), top_pulley_pos, m2.get_top_center()], color=color.white, radius=0.02)
+
+        if SLOPES > 1:
+            m2 = Mass(name="m2",
+                       mass = M2_MASS,   #kg
+                       tilted_degrees=LEFT_SLOPE,
+                       tilt_axis=vector(0, 0, 1),
+                       length=2,
+                       height=1,
+                       width=M2_MASS,
+                       color=color.white)
+            m2.x0 = M2_STARTING_POSITION  
+            m2.v0 = 0
+            m2.acceleration = 0
+
+            m2_wanted_pos = vector(m2.x0, 0, 0)
+            m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
+            m2.mass_position()
+
+            # create pulley
+            Mypulley = Pulley(base_position=myRamp.left_slope_position(vector(0,0,0))) 
+            top_pulley_pos = Mypulley.get_top_wheel_position()
+
+            # יצירת החוט
+            rope = curve(pos=[m1.get_top_center(), top_pulley_pos, m2.get_top_center()], color=color.white, radius=0.02)
+            has_rope = True 
+
 
         running = False
-        has_rope = True 
+        
 
         # יצירת התווית (מקובעת למיקום ספציפי במסך)
         accel_label = label(pos=vector(0, -7, 0), text='Acceleration: ', box=False, height=16)
@@ -91,50 +105,58 @@ class Two_bodies_on_incline():
                 b.text = "Play"
 
         play_button = button(text="Play", bind=toggle_play)
+
+        label_m1 = label(pos=m1.get_top_center(), text='m1', box=False, opacity=0, line=False, height=14, yoffset=15)
+        if SLOPES > 1:
+            label_m2 = label(pos=m2.get_top_center(), text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
+
         
         # --------------- Handle Reset SIM ---------------------------------------
         def reset_sim(b=None):
             nonlocal running, t, m1_wanted_pos, m2_wanted_pos
-            
+            # m2_wanted_pos נדרש רק אם m2 קיים
+            if m2 is not None:
+                nonlocal m2_wanted_pos
+
             running = False
             play_button.text = "Play"
             t = 0
-            
-            m1.x0 = M1_STARTING_POSITION
-            m2.x0 = M2_STARTING_POSITION
 
+            m1.x0 = M1_STARTING_POSITION
             m1_wanted_pos = vector(m1.x0, 0, 0)
-            m2_wanted_pos = vector(m2.x0, 0, 0)
-            
             m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
             m1.mass_position()
-            
-            m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
-            m2.mass_position()
+            label_m1.pos = m1.get_top_center()
 
-            # חישוב התאוצות החדשות באמצעות מודול הפיזיקה
-            a1, a2 = calculate_accelerations(
-                m1=m1.mass, 
-                theta1_deg=RIGHT_SLOPE, 
-                m2=m2.mass, 
-                theta2_deg=LEFT_SLOPE, 
-                has_rope=has_rope
-            )
-            
+            if m2 is not None:
+                m2.x0 = M2_STARTING_POSITION
+                m2_wanted_pos = vector(m2.x0, 0, 0)
+                m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
+                m2.mass_position()
+                label_m2.pos = m2.get_top_center()
+                
+                # חישוב תאוצות לשני גופים
+                a1, a2 = calculate_accelerations(
+                    m1=m1.mass, theta1_deg=RIGHT_SLOPE, 
+                    m2=m2.mass, theta2_deg=LEFT_SLOPE, has_rope=has_rope
+                )
+                m2.acceleration = a2
+            else:
+                # חישוב תאוצה לגוף בודד (מניח שהפונקציה יודעת לטפל ב-has_rope=False)
+                a1, _ = calculate_accelerations(
+                    m1=m1.mass, theta1_deg=RIGHT_SLOPE, 
+                    m2=0, theta2_deg=0, has_rope=False
+                )
+                
             m1.acceleration = a1
-            m2.acceleration = a2
 
             # עדכון נראות החוט
-            if has_rope:
+            if has_rope and rope is not None and m2 is not None:
                 rope.visible = True
                 rope.modify(0, pos=m1.get_top_center())
                 rope.modify(2, pos=m2.get_top_center())
-            else:
+            elif rope is not None:
                 rope.visible = False
-
-            # --- עדכון מיקום תוויות המסות באיפוס ---
-            label_m1.pos = m1.get_top_center()
-            label_m2.pos = m2.get_top_center()
 
 
         reset_button = button(text="Reset", bind=reset_sim)
@@ -146,11 +168,6 @@ class Two_bodies_on_incline():
             nonlocal has_rope
             has_rope = c.checked # קורא האם התיבה מסומנת (True/False)
             # מכיוון ששינוי תאוצה מצריך איפוס של משוואת הזמן, נפעיל אוטומטית Reset
-
-            # --- יצירת תוויות השמות למסות ---
-            # yoffset יגרום לטקסט לרחף מעט מעל המסה
-            label_m1 = label(pos=m1.get_top_center(), text='m1', box=False, opacity=0, line=False, height=14, yoffset=15)
-            label_m2 = label(pos=m2.get_top_center(), text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
 
             reset_sim()
 
@@ -187,23 +204,19 @@ class Two_bodies_on_incline():
             color=color.white
         )
         # --- סוף הקוד להוספת הזוויות ---
-
-
-        # --- יצירת תוויות השמות למסות ---
-        # yoffset יגרום לטקסט לרחף מעט מעל המסה
-        label_m1 = label(pos=m1.get_top_center(), text='m1', box=False, opacity=0, line=False, height=14, yoffset=15)
-        label_m2 = label(pos=m2.get_top_center(), text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
         reset_sim()  #update sim parameters before first run
 
         while True:
             if running:
                 m1_next_pos = myRamp.right_slope_position(m1_wanted_pos)
-                m2_next_pos = myRamp.left_slope_position(m2_wanted_pos)
-
                 m1_can_move = PULLEY_POSITION < m1_next_pos.x < xright and m1_next_pos.y > 0
-                m2_can_move = -xleft < m2_next_pos.x < -PULLEY_POSITION and m2_next_pos.y > 0
+                
+                m2_can_move = False
+                if m2 is not None:
+                    m2_next_pos = myRamp.left_slope_position(m2_wanted_pos)
+                    m2_can_move = -xleft < m2_next_pos.x < -PULLEY_POSITION and m2_next_pos.y > 0
 
-                if has_rope:
+                if has_rope and m2 is not None:
                     # מחוברים: זזים ביחד ועוצרים ביחד
                     if m1_can_move and m2_can_move:
                         # מסה 1
@@ -224,32 +237,36 @@ class Two_bodies_on_incline():
                         label_m1.pos = m1.get_top_center()
                         label_m2.pos = m2.get_top_center()
 
-
-
                         t = t + dt
                     else:
                         running = False
-
                 else:
-                    # מנותקים: כל גוף זז ועוצר בפני עצמו
+                    # מנותקים: כל גוף זז ועוצר בפני עצמו, או שרק גוף אחד קיים
                     if m1_can_move or m2_can_move:
                         if m1_can_move:
                             m1_wanted_pos.x = m1.x0 + (m1.v0 * t) + (0.5 * m1.acceleration * (t**2))
                             m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
                             m1.mass_position()
-                            label_m1.pos = m1.get_top_center() #update mass label
+                            label_m1.pos = m1.get_top_center() 
 
-                        if m2_can_move:
+                        if m2 is not None and m2_can_move:
                             m2_wanted_pos.x = m2.x0 + (m2.v0 * t) + (0.5 * m2.acceleration * (t**2))
                             m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
                             m2.mass_position()
-                            label_m2.pos = m1.get_top_center() ##update mass label
+                            label_m2.pos = m2.get_top_center() 
 
                         t = t + dt
                     else:
-                        # שניהם הגיעו לקצה
                         running = False
 
-                accel_label.text = f'm1 Acceleration: {m1.acceleration:.2f} m/s²\nm2 Acceleration: {m2.acceleration:.2f} m/s²\nTime: {t:.2f} s'
+                # עדכון תוויות התאוצה
+                if m2 is not None:
+                    accel_label.text = f'm1 Acceleration: {m1.acceleration:.2f} m/s²\nm2 Acceleration: {m2.acceleration:.2f} m/s²\nTime: {t:.2f} s'
+                else:
+                    accel_label.text = f'm1 Acceleration: {m1.acceleration:.2f} m/s²\nTime: {t:.2f} s'
 
             rate(100)
+
+
+
+

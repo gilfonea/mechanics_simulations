@@ -3,10 +3,10 @@ from vpython import *
 class Ramp:
 
 
-    def __init__(self, LeftAngle, RightAngle, DoubleRamp, RampColor):  # Constructor
+    def __init__(self, LeftAngle, RightAngle, num_slopes, RampColor):  # Constructor
         self.LeftAngle = LeftAngle
         self.RightAngle = RightAngle  #right slope angle is negative (below x-axis), but we need it possitive for calculations
-        self.DoubleRamp = DoubleRamp
+        self.num_slopes = num_slopes
         self.RampColor = RampColor
 
         #constants
@@ -16,7 +16,7 @@ class Ramp:
         self.Xright = self.RAMP_HEIGHT/tan(radians(self.RightAngle))    #opposite to axises - dont know why
         self.Xleft = self.RAMP_HEIGHT/tan(radians(self.LeftAngle))    #opposite to axises - dont know why 
 
-        if self.DoubleRamp == True:
+        if self.num_slopes > 1:
             # שרטוט נגד כיוון השעון: שמאל למטה -> ימין למטה -> אמצע למעלה -> חזרה לשמאל למטה
             self.triangleshape = [ [-self.Xleft, 0], [self.Xright, 0], [0, self.RAMP_HEIGHT], [-self.Xleft, 0] ]
         else:
