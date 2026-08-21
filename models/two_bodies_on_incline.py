@@ -2,12 +2,12 @@ from vpython import *
 from entities.mass import Mass
 from entities.ramp import Ramp
 from entities.pulley import Pulley
-from utils.physics import *
+from utils.physics import calculate_accelerations, calculate_tension
 from constants import g
 
 # simulation parameters
-LEFT_SLOPE = 30
-RIGHT_SLOPE = 20
+LEFT_SLOPE = 10
+RIGHT_SLOPE = 40
 PULLEY_POSITION = 0.5
 M1_STARTING_POSITION = 1     # must be greater than PULLEY_POSITION
 M2_STARTING_POSITION = 4     # must be greater than PULLEY_POSITION
@@ -40,8 +40,18 @@ class Two_bodies_on_incline():
         # יצירת הבמה
         scene.title = "2 Masses move on Double Ramp"
         scene.background = color.black
-        scene.width = 800
-        scene.height = 600 
+        scene.width = 700
+        scene.height = 500 
+        scene.align = 'left' # <--- תוספת: הצמדת ההדמיה לשמאל
+
+        # --- תוספת: חלון הגרף ---
+        self.v_graph = graph(title='Velocity vs. Time', xtitle='t [s]', ytitle='v [m/s]', 
+                             align='right', width=450, height=500)
+        
+        # עקומה למסה 1
+        self.v_curve1 = gcurve(graph=self.v_graph, color=color.cyan, label='m1 Velocity')
+        self.v_curve2 = None # יאותחל רק אם יש מדרון כפול
+        # -------------------------
 
         # מסילה
         self.myRamp = Ramp(LeftAngle=LEFT_SLOPE, RightAngle=RIGHT_SLOPE, num_slopes=SLOPES, RampColor=color.blue)
@@ -49,7 +59,7 @@ class Two_bodies_on_incline():
 
         # מסה 1
         self.m1 = Mass(name="m1", mass=self.m1_mass_val, tilted_degrees=-RIGHT_SLOPE, tilt_axis=vector(0, 0, 1), 
-                       length=2, height=1, width=self.m1_mass_val, color=color.white)
+                       length=2, height=1, width=self.m1_mass_val, color=color.cyan)
         self.label_m1 = label(text='m1', box=False, opacity=0, line=False, height=14, yoffset=15)
         
         # אתחול משתנים למסה 2 וחוט כדי למנוע שגיאות Reference
@@ -62,9 +72,12 @@ class Two_bodies_on_incline():
         if SLOPES > 1:
             # מסה 2
             self.m2 = Mass(name="m2", mass=self.m2_mass_val, tilted_degrees=LEFT_SLOPE, tilt_axis=vector(0, 0, 1), 
-                           length=2, height=1, width=self.m2_mass_val, color=color.white)
+                           length=2, height=1, width=self.m2_mass_val, color=color.orange)
             self.label_m2 = label(text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
             
+            # תוספת: עקומה למסה 2 על אותו חלון גרף
+            self.v_curve2 = gcurve(graph=self.v_graph, color=color.orange, label='m2 Velocity')
+
             # גלגלת וחוט
             self.Mypulley = Pulley(base_position=self.myRamp.left_slope_position(vector(0,0,0))) 
             self.top_pulley_pos = self.Mypulley.get_top_wheel_position()
@@ -75,6 +88,8 @@ class Two_bodies_on_incline():
         label(pos=vector(self.xright, 0, 0), text=f'{RIGHT_SLOPE}°', xoffset=-30, yoffset=10, box=False, line=False, height=16, color=color.white)
         
         self.accel_label = label(pos=vector(0, -7, 0), text='Acceleration: ', box=False, height=16)
+
+        self.tension_label = label(pos=vector(0, -9, 0), text='Tension (T): ', box=False, height=16, color=color.yellow)
 
     def build_ui(self):
         # כפתורי שליטה
@@ -134,6 +149,13 @@ class Two_bodies_on_incline():
         self.play_button.text = "Play"
         self.t = 0
         
+        # --- תוספת: איפוס נתוני הגרף ---
+        if hasattr(self, 'v_curve1'):
+            self.v_curve1.data = []
+        if hasattr(self, 'v_curve2') and self.v_curve2 is not None:
+            self.v_curve2.data = []
+        # -------------------------------
+
         # החזרת מסה 1 לנקודת ההתחלה
         self.m1.x0 = M1_STARTING_POSITION
         self.m1.v0 = 0
@@ -157,7 +179,7 @@ class Two_bodies_on_incline():
             self.m2.mass = self.m2_mass_val
             self.m2.width = self.m2_mass_val
 
-        # 2. חישוב תאוצות חדשות
+# 2. חישוב תאוצות חדשות ומתיחות
         if self.m2 is not None:
             a1, a2 = calculate_accelerations(
                 m1=self.m1.mass, theta1_deg=RIGHT_SLOPE, 
@@ -165,12 +187,17 @@ class Two_bodies_on_incline():
             )
             self.m1.acceleration = a1
             self.m2.acceleration = a2
+            
+            # קריאה לפונקציה החיצונית לחישוב המתיחות
+            self.tension = calculate_tension(self.m1.mass, RIGHT_SLOPE, a1, self.has_rope)
+            
         else:
             a1, _ = calculate_accelerations(
                 m1=self.m1.mass, theta1_deg=RIGHT_SLOPE, 
                 m2=0, theta2_deg=0, has_rope=False
             )
             self.m1.acceleration = a1
+            self.tension = 0
 
         # 3. אתחול הפוזיציה הגרפית מחדש
         self.m1.bottom_position = self.myRamp.right_slope_position(self.m1_wanted_pos)
@@ -193,7 +220,6 @@ class Two_bodies_on_incline():
         self.update_labels()
 
     def run_sim(self):
-        """תואם לתיבה: run sim בתרשים"""
         # בדיקת גבולות תנועה
         m1_next_pos = self.myRamp.right_slope_position(self.m1_wanted_pos)
         m1_can_move = PULLEY_POSITION < m1_next_pos.x < self.xright and m1_next_pos.y > 0
@@ -203,6 +229,13 @@ class Two_bodies_on_incline():
             m2_next_pos = self.myRamp.left_slope_position(self.m2_wanted_pos)
             m2_can_move = -self.xleft < m2_next_pos.x < -PULLEY_POSITION and m2_next_pos.y > 0
 
+        # משתנים זמניים המייצגים את המהירות והתאוצה הרגעית
+        # אם המסות בתנועה - הם יחושבו כרגיל. אם מסה תעצור - נאפס אותם.
+        current_a1 = self.m1.acceleration
+        current_v1 = self.m1.v0 + self.m1.acceleration * self.t
+        current_a2 = self.m2.acceleration if self.m2 else 0
+        current_v2 = self.m2.v0 + self.m2.acceleration * self.t if self.m2 else 0
+
         # תנועה מחוברת
         if self.has_rope and self.m2 is not None:
             if m1_can_move and m2_can_move:
@@ -211,7 +244,10 @@ class Two_bodies_on_incline():
                 self.rope.modify(0, pos=self.m1.get_top_center())
                 self.rope.modify(2, pos=self.m2.get_top_center())
             else:
-                self.state = "FINISHED" # תואם לתיבה finish or reset
+                # אם אחת המסות הגיעה לקצה, כל המערכת המחוברת נעצרת
+                self.state = "FINISHED" 
+                current_a1 = current_a2 = 0
+                current_v1 = current_v2 = 0
                 
         # תנועה מנותקת
         else:
@@ -219,20 +255,39 @@ class Two_bodies_on_incline():
             if m1_can_move:
                 self.update_kinematics_m1()
                 moved_any = True
-            if self.m2 is not None and m2_can_move:
-                self.update_kinematics_m2()
-                moved_any = True
+            else:
+                # מסה 1 הגיעה לקצה ונעצרה
+                current_a1 = 0
+                current_v1 = 0
+                
+            if self.m2 is not None:
+                if m2_can_move:
+                    self.update_kinematics_m2()
+                    moved_any = True
+                else:
+                    # מסה 2 הגיעה לקצה ונעצרה
+                    current_a2 = 0
+                    current_v2 = 0
                 
             if not moved_any:
-                self.state = "FINISHED" # תואם לתיבה finish or reset
+                self.state = "FINISHED" 
 
-        # קידום הזמן ועדכון תצוגה
+        # עדכון גרפים ותוויות
         if self.state == "RUNNING":
+            # הגרף מקבל עכשיו את המהירות המעודכנת (0 אם הגוף נעצר)
+            self.v_curve1.plot(self.t, current_v1)
+            
+            if self.m2 is not None and self.v_curve2 is not None:
+                self.v_curve2.plot(self.t, current_v2)
+
             self.t += dt
-            self.update_labels()
+            # התוויות מקבלות את התאוצה המעודכנת
+            self.update_labels(current_a1, current_a2)
             
         if self.state == "FINISHED":
             self.play_button.text = "Play"
+            # וידוא שבסיום הסימולציה התוויות מתאפסות ל-0
+            self.update_labels(0, 0)
 
     def update_kinematics_m1(self):
         self.m1_wanted_pos.x = self.m1.x0 + (self.m1.v0 * self.t) + (0.5 * self.m1.acceleration * (self.t**2))
@@ -246,11 +301,23 @@ class Two_bodies_on_incline():
         self.m2.mass_position()
         self.label_m2.pos = self.m2.get_top_center()
 
-    def update_labels(self):
+    def update_labels(self, current_a1=None, current_a2=None):
+        # אם לא הועברו פרמטרים (למשל בזמן reset), נשתמש בתאוצה המקורית
+        if current_a1 is None: current_a1 = self.m1.acceleration
+        if current_a2 is None: current_a2 = self.m2.acceleration if self.m2 else 0
+
+        # עדכון תווית התאוצה והזמן בהתאם לערכים העדכניים
         if self.m2 is not None:
-            self.accel_label.text = f'm1 Acceleration: {self.m1.acceleration:.2f} m/s²\nm2 Acceleration: {self.m2.acceleration:.2f} m/s²\nTime: {self.t:.2f} s'
+            self.accel_label.text = f'm1 Acceleration: {current_a1:.2f} m/s²\nm2 Acceleration: {current_a2:.2f} m/s²\nTime: {self.t:.2f} s'
         else:
-            self.accel_label.text = f'm1 Acceleration: {self.m1.acceleration:.2f} m/s²\nTime: {self.t:.2f} s'
+            self.accel_label.text = f'm1 Acceleration: {current_a1:.2f} m/s²\nTime: {self.t:.2f} s'
+            
+        # עדכון תווית המתיחות בחוט
+        if self.has_rope and self.m2 is not None:
+            self.tension_label.text = f'Tension (T): {abs(self.tension):.2f} N'
+            self.tension_label.visible = True
+        else:
+            self.tension_label.visible = False
 
     def start(self):
         # הלולאה הראשית ששומרת על הסימולציה פועלת

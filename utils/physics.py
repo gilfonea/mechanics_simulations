@@ -1,5 +1,6 @@
 import math
 from constants import g
+from math import sin, radians
 
 def calculate_accelerations(m1, theta1_deg, m2, theta2_deg, has_rope):
     """
@@ -33,3 +34,16 @@ def calculate_accelerations(m1, theta1_deg, m2, theta2_deg, has_rope):
         # בהנחה שמערכת הצירים שלך דורשת סימנים הפוכים לגופים כשהם מחוברים
         # (המסה האחת יורדת והשנייה עולה, תלוי בכיווניות הוקטורים בסימולציה)
         return a_system, -a_system
+
+
+def calculate_tension(m1, theta1_deg, a1, has_rope):
+    """
+    מחשב את המתיחות בחוט על סמך החוק השני של ניוטון עבור המסה הראשונה.
+    """
+    if not has_rope:
+        return 0
+        
+    theta1_rad = radians(theta1_deg)
+    # T = m1 * (g * sin(theta) - a1)
+    tension = m1 * (g * sin(theta1_rad) - a1)
+    return tension
