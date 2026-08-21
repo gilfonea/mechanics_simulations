@@ -13,260 +13,253 @@ M1_STARTING_POSITION = 1     # must be greater than PULLEY_POSITION
 M2_STARTING_POSITION = 4     # must be greater than PULLEY_POSITION
 M1_MASS = 2 #kg
 M2_MASS = 1 #kg
-SLOPES = 1
-
+SLOPES = 2
 
 dt = 0.01
 
 class Two_bodies_on_incline():
 
     def __init__(self):
-        pass
+        # 1. מצב המערכת ומשתני זמן
+        self.state = "SETUP"  # מצבים אפשריים: "SETUP", "RUNNING", "FINISHED"
+        self.t = 0
+        self.has_rope = True
+        
+        # משתנים שנשלטים על ידי הממשק
+        self.m1_mass_val = M1_MASS
+        self.m2_mass_val = M2_MASS
 
-    def start(self):
+        # 2. בניית הסביבה הוויזואלית והממשק (מתבצע פעם אחת)
+        self.build_scene()
+        self.build_ui()
+        
+        # 3. איפוס והחלת פרמטרים התחלתיים
+        self.reset_sim()
 
-        # create scene
+    def build_scene(self):
+        # יצירת הבמה
         scene.title = "2 Masses move on Double Ramp"
         scene.background = color.black
         scene.width = 800
         scene.height = 600 
 
-        # create ramp
-        myRamp = Ramp(LeftAngle=LEFT_SLOPE, 
-                      RightAngle=RIGHT_SLOPE, 
-                      num_slopes=SLOPES, 
-                      RampColor=color.blue)
+        # מסילה
+        self.myRamp = Ramp(LeftAngle=LEFT_SLOPE, RightAngle=RIGHT_SLOPE, num_slopes=SLOPES, RampColor=color.blue)
+        self.xleft, self.xright = self.myRamp.get_ramp_base_vertices()
 
-        # create masses
-        m1 = Mass(name="m1",
-                   mass = M1_MASS,   
-                   tilted_degrees=-RIGHT_SLOPE,
-                   tilt_axis=vector(0, 0, 1),      #tilt around z axis
-                   length=2,
-                   height=1,
-                   width=M1_MASS,
-                   color=color.white)
-        m1.x0 = M1_STARTING_POSITION
-        m1.v0 = 0
-        m1.acceleration = 0 # תאוצה התחלתית (עם חוט)
-
-        m1_wanted_pos = vector(m1.x0, 0, 0)
-        m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
-        m1.mass_position()
-
-
-# --- הגדרות ברירת מחדל כדי למנוע NameError ---
-        m2 = None
-        m2_wanted_pos = None
-        label_m2 = None
-        rope = None
-        has_rope = False
-
+        # מסה 1
+        self.m1 = Mass(name="m1", mass=self.m1_mass_val, tilted_degrees=-RIGHT_SLOPE, tilt_axis=vector(0, 0, 1), 
+                       length=2, height=1, width=self.m1_mass_val, color=color.white)
+        self.label_m1 = label(text='m1', box=False, opacity=0, line=False, height=14, yoffset=15)
+        
+        # אתחול משתנים למסה 2 וחוט כדי למנוע שגיאות Reference
+        self.m2 = None
+        self.label_m2 = None
+        self.Mypulley = None
+        self.rope = None
+        self.top_pulley_pos = None
 
         if SLOPES > 1:
-            m2 = Mass(name="m2",
-                       mass = M2_MASS,   #kg
-                       tilted_degrees=LEFT_SLOPE,
-                       tilt_axis=vector(0, 0, 1),
-                       length=2,
-                       height=1,
-                       width=M2_MASS,
-                       color=color.white)
-            m2.x0 = M2_STARTING_POSITION  
-            m2.v0 = 0
-            m2.acceleration = 0
-
-            m2_wanted_pos = vector(m2.x0, 0, 0)
-            m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
-            m2.mass_position()
-
-            # create pulley
-            Mypulley = Pulley(base_position=myRamp.left_slope_position(vector(0,0,0))) 
-            top_pulley_pos = Mypulley.get_top_wheel_position()
-
-            # יצירת החוט
-            rope = curve(pos=[m1.get_top_center(), top_pulley_pos, m2.get_top_center()], color=color.white, radius=0.02)
-            has_rope = True 
-
-
-        running = False
+            # מסה 2
+            self.m2 = Mass(name="m2", mass=self.m2_mass_val, tilted_degrees=LEFT_SLOPE, tilt_axis=vector(0, 0, 1), 
+                           length=2, height=1, width=self.m2_mass_val, color=color.white)
+            self.label_m2 = label(text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
+            
+            # גלגלת וחוט
+            self.Mypulley = Pulley(base_position=self.myRamp.left_slope_position(vector(0,0,0))) 
+            self.top_pulley_pos = self.Mypulley.get_top_wheel_position()
+            self.rope = curve(color=color.white, radius=0.02)
+            
+        # תוויות קבועות במסך (זוויות ותאוצה)
+        label(pos=vector(-self.xleft, 0, 0), text=f'{LEFT_SLOPE}°', xoffset=30, yoffset=10, box=False, line=False, height=16, color=color.white)
+        label(pos=vector(self.xright, 0, 0), text=f'{RIGHT_SLOPE}°', xoffset=-30, yoffset=10, box=False, line=False, height=16, color=color.white)
         
+        self.accel_label = label(pos=vector(0, -7, 0), text='Acceleration: ', box=False, height=16)
 
-        # יצירת התווית (מקובעת למיקום ספציפי במסך)
-        accel_label = label(pos=vector(0, -7, 0), text='Acceleration: ', box=False, height=16)
+    def build_ui(self):
+        # כפתורי שליטה
+        self.play_button = button(text="Play", bind=self.toggle_play)
+        button(text="Reset", bind=self.reset_sim_from_ui)
 
-        # --------------- Handle play/pause ---------------------------------------
-        def toggle_play(b):
-            nonlocal running
-            running = not running
-            if running: 
-                b.text = "Pause"
-            else:
-                b.text = "Play"
+        scene.append_to_caption('  ') 
+        checkbox(bind=self.toggle_rope, text='Connect Rope', checked=True)
 
-        play_button = button(text="Play", bind=toggle_play)
+        # סליידרים למסות
+        scene.append_to_caption('\n\nMass 1 (kg): ')
+        self.m1_text = wtext(text=f'{self.m1_mass_val:.1f}')
+        scene.append_to_caption('  ')
+        slider(min=0.1, max=10, value=self.m1_mass_val, length=200, bind=self.set_m1_mass)
 
-        label_m1 = label(pos=m1.get_top_center(), text='m1', box=False, opacity=0, line=False, height=14, yoffset=15)
         if SLOPES > 1:
-            label_m2 = label(pos=m2.get_top_center(), text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
+            scene.append_to_caption('\nMass 2 (kg): ')
+            self.m2_text = wtext(text=f'{self.m2_mass_val:.1f}')
+            scene.append_to_caption('  ')
+            slider(min=0.1, max=10, value=self.m2_mass_val, length=200, bind=self.set_m2_mass)
 
+    # --------------- אירועי ממשק (UI Callbacks) ----------------
+    def toggle_play(self, b):
+        if self.state == "RUNNING":
+            self.state = "SETUP"
+            b.text = "Play"
+        elif self.state == "SETUP":
+            self.state = "RUNNING"
+            b.text = "Pause"
+        elif self.state == "FINISHED":
+            # אם הסימולציה הסתיימה ולוחצים פליי, מתבצע איפוס והתחלה מחדש
+            self.reset_sim()
+            self.state = "RUNNING"
+            b.text = "Pause"
+
+    def reset_sim_from_ui(self, b):
+        self.reset_sim()
+
+    def toggle_rope(self, c):
+        self.has_rope = c.checked
+        self.reset_sim()
+
+    def set_m1_mass(self, s):
+        self.m1_mass_val = s.value
+        self.m1_text.text = f'{s.value:.1f}'
+        self.reset_sim()
+
+    def set_m2_mass(self, s):
+        self.m2_mass_val = s.value
+        self.m2_text.text = f'{s.value:.1f}'
+        self.reset_sim()
+    # ------------------------------------------------------------
+
+    def reset_sim(self):
+        """תואם לתיבה: reset בתרשים"""
+        self.state = "SETUP"
+        self.play_button.text = "Play"
+        self.t = 0
         
-        # --------------- Handle Reset SIM ---------------------------------------
-        def reset_sim(b=None):
-            nonlocal running, t, m1_wanted_pos, m2_wanted_pos
-            # m2_wanted_pos נדרש רק אם m2 קיים
-            if m2 is not None:
-                nonlocal m2_wanted_pos
+        # החזרת מסה 1 לנקודת ההתחלה
+        self.m1.x0 = M1_STARTING_POSITION
+        self.m1.v0 = 0
+        self.m1_wanted_pos = vector(self.m1.x0, 0, 0)
+        
+        # החזרת מסה 2 לנקודת ההתחלה
+        if SLOPES > 1 and self.m2 is not None:
+            self.m2.x0 = M2_STARTING_POSITION
+            self.m2.v0 = 0
+            self.m2_wanted_pos = vector(self.m2.x0, 0, 0)
+            
+        self.set_simulation_parameters()
 
-            running = False
-            play_button.text = "Play"
-            t = 0
+    def set_simulation_parameters(self):
+        """תואם לתיבה: set simulation parameters בתרשים"""
+        
+        # 1. עדכון המסות והנראות (רוחב) מהסליידרים
+        self.m1.mass = self.m1_mass_val
+        self.m1.width = self.m1_mass_val
+        if self.m2 is not None:
+            self.m2.mass = self.m2_mass_val
+            self.m2.width = self.m2_mass_val
 
-            m1.x0 = M1_STARTING_POSITION
-            m1_wanted_pos = vector(m1.x0, 0, 0)
-            m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
-            m1.mass_position()
-            label_m1.pos = m1.get_top_center()
+        # 2. חישוב תאוצות חדשות
+        if self.m2 is not None:
+            a1, a2 = calculate_accelerations(
+                m1=self.m1.mass, theta1_deg=RIGHT_SLOPE, 
+                m2=self.m2.mass, theta2_deg=LEFT_SLOPE, has_rope=self.has_rope
+            )
+            self.m1.acceleration = a1
+            self.m2.acceleration = a2
+        else:
+            a1, _ = calculate_accelerations(
+                m1=self.m1.mass, theta1_deg=RIGHT_SLOPE, 
+                m2=0, theta2_deg=0, has_rope=False
+            )
+            self.m1.acceleration = a1
 
-            if m2 is not None:
-                m2.x0 = M2_STARTING_POSITION
-                m2_wanted_pos = vector(m2.x0, 0, 0)
-                m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
-                m2.mass_position()
-                label_m2.pos = m2.get_top_center()
-                
-                # חישוב תאוצות לשני גופים
-                a1, a2 = calculate_accelerations(
-                    m1=m1.mass, theta1_deg=RIGHT_SLOPE, 
-                    m2=m2.mass, theta2_deg=LEFT_SLOPE, has_rope=has_rope
-                )
-                m2.acceleration = a2
+        # 3. אתחול הפוזיציה הגרפית מחדש
+        self.m1.bottom_position = self.myRamp.right_slope_position(self.m1_wanted_pos)
+        self.m1.mass_position()
+        self.label_m1.pos = self.m1.get_top_center()
+
+        if self.m2 is not None:
+            self.m2.bottom_position = self.myRamp.left_slope_position(self.m2_wanted_pos)
+            self.m2.mass_position()
+            self.label_m2.pos = self.m2.get_top_center()
+            
+        # 4. ציור החוט מחדש בהתאם למצב
+        if self.has_rope and self.rope is not None and self.m2 is not None:
+            self.rope.visible = True
+            self.rope.clear()
+            self.rope.append([self.m1.get_top_center(), self.top_pulley_pos, self.m2.get_top_center()])
+        elif self.rope is not None:
+            self.rope.visible = False
+
+        self.update_labels()
+
+    def run_sim(self):
+        """תואם לתיבה: run sim בתרשים"""
+        # בדיקת גבולות תנועה
+        m1_next_pos = self.myRamp.right_slope_position(self.m1_wanted_pos)
+        m1_can_move = PULLEY_POSITION < m1_next_pos.x < self.xright and m1_next_pos.y > 0
+        
+        m2_can_move = False
+        if self.m2 is not None:
+            m2_next_pos = self.myRamp.left_slope_position(self.m2_wanted_pos)
+            m2_can_move = -self.xleft < m2_next_pos.x < -PULLEY_POSITION and m2_next_pos.y > 0
+
+        # תנועה מחוברת
+        if self.has_rope and self.m2 is not None:
+            if m1_can_move and m2_can_move:
+                self.update_kinematics_m1()
+                self.update_kinematics_m2()
+                self.rope.modify(0, pos=self.m1.get_top_center())
+                self.rope.modify(2, pos=self.m2.get_top_center())
             else:
-                # חישוב תאוצה לגוף בודד (מניח שהפונקציה יודעת לטפל ב-has_rope=False)
-                a1, _ = calculate_accelerations(
-                    m1=m1.mass, theta1_deg=RIGHT_SLOPE, 
-                    m2=0, theta2_deg=0, has_rope=False
-                )
+                self.state = "FINISHED" # תואם לתיבה finish or reset
                 
-            m1.acceleration = a1
+        # תנועה מנותקת
+        else:
+            moved_any = False
+            if m1_can_move:
+                self.update_kinematics_m1()
+                moved_any = True
+            if self.m2 is not None and m2_can_move:
+                self.update_kinematics_m2()
+                moved_any = True
+                
+            if not moved_any:
+                self.state = "FINISHED" # תואם לתיבה finish or reset
 
-            # עדכון נראות החוט
-            if has_rope and rope is not None and m2 is not None:
-                rope.visible = True
-                rope.modify(0, pos=m1.get_top_center())
-                rope.modify(2, pos=m2.get_top_center())
-            elif rope is not None:
-                rope.visible = False
+        # קידום הזמן ועדכון תצוגה
+        if self.state == "RUNNING":
+            self.t += dt
+            self.update_labels()
+            
+        if self.state == "FINISHED":
+            self.play_button.text = "Play"
 
+    def update_kinematics_m1(self):
+        self.m1_wanted_pos.x = self.m1.x0 + (self.m1.v0 * self.t) + (0.5 * self.m1.acceleration * (self.t**2))
+        self.m1.bottom_position = self.myRamp.right_slope_position(self.m1_wanted_pos)
+        self.m1.mass_position()
+        self.label_m1.pos = self.m1.get_top_center()
 
-        reset_button = button(text="Reset", bind=reset_sim)
+    def update_kinematics_m2(self):
+        self.m2_wanted_pos.x = self.m2.x0 + (self.m2.v0 * self.t) + (0.5 * self.m2.acceleration * (self.t**2))
+        self.m2.bottom_position = self.myRamp.left_slope_position(self.m2_wanted_pos)
+        self.m2.mass_position()
+        self.label_m2.pos = self.m2.get_top_center()
 
-        # --------------- Handle Rope Switch ---------------------------------------
-        scene.append_to_caption('  ') # קצת רווח ב-UI
+    def update_labels(self):
+        if self.m2 is not None:
+            self.accel_label.text = f'm1 Acceleration: {self.m1.acceleration:.2f} m/s²\nm2 Acceleration: {self.m2.acceleration:.2f} m/s²\nTime: {self.t:.2f} s'
+        else:
+            self.accel_label.text = f'm1 Acceleration: {self.m1.acceleration:.2f} m/s²\nTime: {self.t:.2f} s'
 
-        def toggle_rope(c):
-            nonlocal has_rope
-            has_rope = c.checked # קורא האם התיבה מסומנת (True/False)
-            # מכיוון ששינוי תאוצה מצריך איפוס של משוואת הזמן, נפעיל אוטומטית Reset
-
-            reset_sim()
-
-        # הוספת מתג בוליאני לבחירת מצב החוט
-        rope_checkbox = checkbox(bind=toggle_rope, text='Connect Rope', checked=True)
-        # -------------------------------------------------------------------------
-
-        # main simulation loop:
-        xleft, xright = myRamp.get_ramp_base_vertices() 
-
-# --- תחילת הקוד להוספת הזוויות ---
-        
-        # תווית לזווית השמאלית
-        label(
-            pos=vector(-xleft, 0, 0),  # מיקום הפינה השמאלית
-            text=f'{LEFT_SLOPE}°',     # הטקסט שיוצג
-            xoffset=30,                # הזזה קלה ימינה כדי שלא יוסתר על ידי הפינה
-            yoffset=10,                # הזזה קלה למעלה
-            box=False,                 # ללא מסגרת סביב הטקסט
-            line=False,                # ללא קו שמחבר בין התווית לנקודה
-            height=16,
-            color=color.white
-        )
-
-        # תווית לזווית הימנית
-        label(
-            pos=vector(xright, 0, 0),  # מיקום הפינה הימנית
-            text=f'{RIGHT_SLOPE}°',    # הטקסט שיוצג
-            xoffset=-30,               # הזזה קלה שמאלה
-            yoffset=10,                # הזזה קלה למעלה
-            box=False,
-            line=False,
-            height=16,
-            color=color.white
-        )
-        # --- סוף הקוד להוספת הזוויות ---
-        reset_sim()  #update sim parameters before first run
-
+    def start(self):
+        # הלולאה הראשית ששומרת על הסימולציה פועלת
         while True:
-            if running:
-                m1_next_pos = myRamp.right_slope_position(m1_wanted_pos)
-                m1_can_move = PULLEY_POSITION < m1_next_pos.x < xright and m1_next_pos.y > 0
-                
-                m2_can_move = False
-                if m2 is not None:
-                    m2_next_pos = myRamp.left_slope_position(m2_wanted_pos)
-                    m2_can_move = -xleft < m2_next_pos.x < -PULLEY_POSITION and m2_next_pos.y > 0
-
-                if has_rope and m2 is not None:
-                    # מחוברים: זזים ביחד ועוצרים ביחד
-                    if m1_can_move and m2_can_move:
-                        # מסה 1
-                        m1_wanted_pos.x = m1.x0 + (m1.v0 * t) + (0.5 * m1.acceleration * (t**2))
-                        m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
-                        m1.mass_position()
-
-                        # מסה 2
-                        m2_wanted_pos.x = m2.x0 + (m2.v0 * t) + (0.5 * m2.acceleration * (t**2))
-                        m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
-                        m2.mass_position()
-
-                        # חוט
-                        rope.modify(0, pos=m1.get_top_center())
-                        rope.modify(2, pos=m2.get_top_center())
-
-                        # --- עדכון מיקום התוויות בזמן תנועה ---
-                        label_m1.pos = m1.get_top_center()
-                        label_m2.pos = m2.get_top_center()
-
-                        t = t + dt
-                    else:
-                        running = False
-                else:
-                    # מנותקים: כל גוף זז ועוצר בפני עצמו, או שרק גוף אחד קיים
-                    if m1_can_move or m2_can_move:
-                        if m1_can_move:
-                            m1_wanted_pos.x = m1.x0 + (m1.v0 * t) + (0.5 * m1.acceleration * (t**2))
-                            m1.bottom_position = myRamp.right_slope_position(m1_wanted_pos)
-                            m1.mass_position()
-                            label_m1.pos = m1.get_top_center() 
-
-                        if m2 is not None and m2_can_move:
-                            m2_wanted_pos.x = m2.x0 + (m2.v0 * t) + (0.5 * m2.acceleration * (t**2))
-                            m2.bottom_position = myRamp.left_slope_position(m2_wanted_pos)
-                            m2.mass_position()
-                            label_m2.pos = m2.get_top_center() 
-
-                        t = t + dt
-                    else:
-                        running = False
-
-                # עדכון תוויות התאוצה
-                if m2 is not None:
-                    accel_label.text = f'm1 Acceleration: {m1.acceleration:.2f} m/s²\nm2 Acceleration: {m2.acceleration:.2f} m/s²\nTime: {t:.2f} s'
-                else:
-                    accel_label.text = f'm1 Acceleration: {m1.acceleration:.2f} m/s²\nTime: {t:.2f} s'
-
             rate(100)
+            if self.state == "RUNNING":
+                self.run_sim()
 
-
-
-
+# הפעלת הסימולציה
+if __name__ == "__main__":
+    sim = Two_bodies_on_incline()
+    sim.start()
