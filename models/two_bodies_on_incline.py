@@ -89,7 +89,7 @@ class Two_bodies_on_incline():
         
         self.accel_label = label(pos=vector(0, -7, 0), text='Acceleration: ', box=False, height=16)
 
-        self.tension_label = label(pos=vector(0, -9, 0), text='Tension (T): ', box=False, height=16, color=color.yellow)
+        self.tension_label = label(pos=vector(0, -13, 0), text='Tension (T): ', box=False, height=16, color=color.yellow)
 
     def build_ui(self):
         # כפתורי שליטה
