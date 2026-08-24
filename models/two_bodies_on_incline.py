@@ -6,10 +6,10 @@ from utils.physics import calculate_accelerations, calculate_tension
 from constants import g
 
 # simulation parameters
-LEFT_SLOPE = 10
+LEFT_SLOPE = 30
 RIGHT_SLOPE = 40
 PULLEY_POSITION = 0.5
-M1_STARTING_POSITION = 1     # must be greater than PULLEY_POSITION
+M1_STARTING_POSITION = 2     # must be greater than PULLEY_POSITION
 M2_STARTING_POSITION = 4     # must be greater than PULLEY_POSITION
 M1_MASS = 2 #kg
 M2_MASS = 1 #kg
@@ -44,13 +44,22 @@ class Two_bodies_on_incline():
         scene.height = 500 
         scene.align = 'left' # <--- תוספת: הצמדת ההדמיה לשמאל
 
-        # --- תוספת: חלון הגרף ---
+        # --- תוספת: חלונות הגרפים ---
+        # הקטנתי את הגובה ל-250 כדי ששניהם יכנסו יחד בצד ימין
         self.v_graph = graph(title='Velocity vs. Time', xtitle='t [s]', ytitle='v [m/s]', 
-                             align='right', width=450, height=500)
+                             align='right', width=450, height=250)
         
-        # עקומה למסה 1
+        # עקומה למסה 1 - מהירות
         self.v_curve1 = gcurve(graph=self.v_graph, color=color.cyan, label='m1 Velocity')
-        self.v_curve2 = None # יאותחל רק אם יש מדרון כפול
+        self.v_curve2 = None 
+
+        # --- יצירת גרף המיקום ---
+        self.x_graph = graph(title='Position vs. Time', xtitle='t [s]', ytitle='x [m]', 
+                             align='right', width=450, height=250)
+        
+        # עקומה למסה 1 - מיקום
+        self.x_curve1 = gcurve(graph=self.x_graph, color=color.cyan, label='m1 Position')
+        self.x_curve2 = None
         # -------------------------
 
         # מסילה
@@ -75,8 +84,10 @@ class Two_bodies_on_incline():
                            length=2, height=1, width=self.m2_mass_val, color=color.orange)
             self.label_m2 = label(text='m2', box=False, opacity=0, line=False, height=14, yoffset=15)
             
-            # תוספת: עקומה למסה 2 על אותו חלון גרף
+            # עקומה למסה 2 על גרף המהירות
             self.v_curve2 = gcurve(graph=self.v_graph, color=color.orange, label='m2 Velocity')
+            # תוספת: עקומה למסה 2 על גרף המיקום
+            self.x_curve2 = gcurve(graph=self.x_graph, color=color.orange, label='m2 Position')
 
             # גלגלת וחוט
             self.Mypulley = Pulley(base_position=self.myRamp.left_slope_position(vector(0,0,0))) 
@@ -154,6 +165,12 @@ class Two_bodies_on_incline():
             self.v_curve1.data = []
         if hasattr(self, 'v_curve2') and self.v_curve2 is not None:
             self.v_curve2.data = []
+            
+        # איפוס נתוני גרף המיקום החדש
+        if hasattr(self, 'x_curve1'):
+            self.x_curve1.data = []
+        if hasattr(self, 'x_curve2') and self.x_curve2 is not None:
+            self.x_curve2.data = []
         # -------------------------------
 
         # החזרת מסה 1 לנקודת ההתחלה
@@ -274,15 +291,22 @@ class Two_bodies_on_incline():
 
         # עדכון גרפים ותוויות
         if self.state == "RUNNING":
-            # הגרף מקבל עכשיו את המהירות המעודכנת (0 אם הגוף נעצר)
+            # הגרף מקבל עכשיו את המהירות המעודכנת
             self.v_curve1.plot(self.t, current_v1)
+            # תוספת: הגרף השני מקבל את המיקום הנוכחי
+            self.x_curve1.plot(self.t, self.m1_wanted_pos.x)
             
             if self.m2 is not None and self.v_curve2 is not None:
                 self.v_curve2.plot(self.t, current_v2)
+                # תוספת: מיקום מסה 2
+                self.x_curve2.plot(self.t, self.m2_wanted_pos.x)
 
             self.t += dt
+
             # התוויות מקבלות את התאוצה המעודכנת
             self.update_labels(current_a1, current_a2)
+
+
             
         if self.state == "FINISHED":
             self.play_button.text = "Play"
