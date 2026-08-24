@@ -14,4 +14,4 @@ COPY . .
 EXPOSE 8080
 
 # פקודת ההרצה של Voilà (ללא שם מחברת ספציפי, כדי להציג את התפריט הראשי)
-CMD ["voila", "--port=8080", "--no-browser", "--Voila.ip=0.0.0.0"]
+CMD ["voila", "run_sim.ipynb", "--port=8080", "--no-browser", "--Voila.ip=0.0.0.0", "--enable_nbextensions=True"]
