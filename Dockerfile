@@ -1,10 +1,17 @@
 FROM python:3.10
-RUN useradd -m -u 1000 user
-USER user
-ENV PATH="/home/user/.local/bin:$PATH"
-WORKDIR /home/user/app
-COPY --chown=user requirements.txt .
+
+# הגדרת תיקיית העבודה בשרת
+WORKDIR /app
+
+# העתקת קובץ ההתקנות והתקנת הספריות
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY --chown=user . .
-EXPOSE 7860
-CMD ["voila", "run_sim.ipynb", "--port=7860", "--no-browser", "--Voila.ip=0.0.0.0", "--Voila.server_url=/"]
+
+# העתקת כל שאר קבצי הפרויקט פנימה
+COPY . .
+
+# Render יודע לזהות את הפורט הזה באופן אוטומטי
+EXPOSE 8080
+
+# פקודת ההרצה של Voilà (ללא שם מחברת ספציפי, כדי להציג את התפריט הראשי)
+CMD ["voila", "--port=8080", "--no-browser", "--Voila.ip=0.0.0.0"]
