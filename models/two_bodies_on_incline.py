@@ -4,7 +4,6 @@ from entities.ramp import Ramp
 from entities.pulley import Pulley
 from utils.physics import calculate_accelerations, calculate_tension
 from constants import g
-import asyncio
 
 # simulation parameters
 LEFT_SLOPE = 30
@@ -350,17 +349,6 @@ class Two_bodies_on_incline():
             rate(100)
             if self.state == "RUNNING":
                 self.run_sim()
-
-    async def start_web(self):
-        """לולאת אנימציה אסינכרונית המותאמת להרצה ב-Voilà"""
-        while True:
-            rate(100)
-            if self.state == "RUNNING":
-                self.run_sim()
-            
-            # פקודה זו אומרת לפייתון לשחרר שבריר שנייה לדפדפן כדי לרנדר את המסך
-            await asyncio.sleep(0.01)
-
 
 # הפעלת הסימולציה
 if __name__ == "__main__":
